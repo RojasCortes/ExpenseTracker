@@ -2,14 +2,639 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Financial Tracker App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#007bff">
+  <meta name="description" content="Aplicación para control de finanzas personales">
+  <title>Financial Tracker</title>
+  
+  <!-- Manifest para PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0047FF">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  
+  <!-- Estilos CSS -->
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --primary-dark: #0056b3;
+      --secondary-color: #6c757d;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+      --bg-color: #f5f5f5;
+      --text-color: #212529;
+      --border-radius: 10px;
+      --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      /* Padding para evitar que el contenido quede bajo la barra de navegación */
+      --bottom-nav-height: 65px;
+    }
+    
+    [data-theme="dark"] {
+      --primary-color: #3f8cff;
+      --primary-dark: #2970d6;
+      --secondary-color: #8c959e;
+      --bg-color: #121212;
+      --text-color: #f5f5f5;
+      --light-color: #2c2c2c;
+      --dark-color: #f8f9fa;
+      --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transition: background-color 0.3s, color 0.3s;
+      padding-bottom: var(--bottom-nav-height);
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    .app-container {
+      max-width: 600px;
+      margin: 0 auto;
+      height: 100%;
+      position: relative;
+    }
+    
+    /* Navbar */
+    .navbar {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .navbar-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    #theme-toggle {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    
+    /* Main Content */
+    .main-content {
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Bottom Navigation */
+    .bottom-nav {
+      background-color: var(--light-color);
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--bottom-nav-height);
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1rem;
+      z-index: 10;
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--secondary-color);
+      text-decoration: none;
+      padding: 0.5rem;
+      flex: 1;
+      transition: color 0.2s;
+    }
+    
+    .nav-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .nav-item.active {
+      color: var(--primary-color);
+    }
+    
+    .nav-item span {
+      font-size: 0.75rem;
+    }
+    
+    /* Card Components */
+    .card {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    [data-theme="dark"] .card {
+      background-color: #1e1e1e;
+    }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Balance Card */
+    .balance-card {
+      background-color: var(--primary-color);
+      color: white;
+      text-align: center;
+      padding: 1.5rem 1rem;
+    }
+    
+    .balance-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.8;
+    }
+    
+    .balance-amount {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    /* Currency Selector */
+    .currency-selector {
+      display: flex;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      overflow: hidden;
+      margin: 0 auto;
+      width: fit-content;
+    }
+    
+    .currency-option {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    .currency-option.active {
+      background-color: white;
+      color: var(--primary-color);
+    }
+    
+    /* Stats Container */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .stat-card {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    [data-theme="dark"] .stat-card {
+      background-color: #1e1e1e;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0.5rem 0;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--secondary-color);
+    }
+    
+    /* List Items */
+    .list-container {
+      margin-top: 0.5rem;
+    }
+    
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    
+    .item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .item-details {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    
+    .item-title {
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .item-subtitle {
+      font-size: 0.75rem;
+      color: var(--secondary-color);
+    }
+    
+    .item-description {
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+    
+    .item-amount {
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: right;
+      flex-shrink: 0;
+      margin-left: 1rem;
+    }
+    
+    .amount-positive {
+      color: var(--success-color);
+    }
+    
+    .amount-negative {
+      color: var(--danger-color);
+    }
+    
+    /* Expense Item */
+    .expense-item {
+      cursor: pointer;
+    }
+    
+    /* Chart Container */
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin-top: 1rem;
+      position: relative;
+    }
+    
+    /* Buttons */
+    .btn {
+      background-color: var(--light-color);
+      color: var(--text-color);
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .btn:hover {
+      background-color: #e2e6ea;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .btn-block {
+      display: block;
+      width: 100%;
+    }
+    
+    .btn-danger {
+      background-color: var(--danger-color);
+      color: white;
+    }
+    
+    /* Floating Action Button */
+    .fab {
+      background-color: var(--primary-color);
+      color: white;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      z-index: 9;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .fab:active {
+      transform: scale(0.95);
+    }
+    
+    /* Forms */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      background-color: white;
+      color: var(--text-color);
+    }
+    
+    [data-theme="dark"] .form-control {
+      background-color: #2c2c2c;
+      color: white;
+      border-color: #444;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    .modal {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: modalFadeIn 0.3s;
+    }
+    
+    [data-theme="dark"] .modal {
+      background-color: #1e1e1e;
+    }
+    
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    .modal-header {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--secondary-color);
+    }
+    
+    .modal-body {
+      padding: 1rem;
+    }
+    
+    .modal-footer {
+      padding: 1rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    
+    /* Tabs */
+    .tab-container {
+      margin-top: 1rem;
+    }
+    
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+    }
+    
+    .tab-button {
+      background: none;
+      border: none;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--secondary-color);
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .tab-button.active {
+      color: var(--primary-color);
+    }
+    
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: var(--primary-color);
+    }
+    
+    .tab-content {
+      padding: 0.5rem 0;
+    }
+    
+    /* Utility Classes */
+    .text-center {
+      text-align: center;
+    }
+    
+    .mt-4 {
+      margin-top: 1rem;
+    }
+    
+    .my-4 {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .mb-3 {
+      margin-bottom: 0.75rem;
+    }
+    
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+    
+    /* Spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Account Actions */
+    .account-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn-edit-account,
+    .btn-delete-account {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-color);
+      padding: 0.5rem;
+      border-radius: 5px;
+      transition: background-color 0.2s;
+    }
+    
+    .btn-edit-account:hover,
+    .btn-delete-account:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-delete-account:hover {
+      color: var(--danger-color);
+    }
+    
+    .btn-edit-account:hover {
+      color: var(--primary-color);
+    }
+    
+    /* Media Queries for larger screens */
+    @media (min-width: 768px) {
+      .app-container {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        min-height: calc(100vh - 2rem);
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        border-radius: 10px;
+      }
+      
+      body {
+        padding-bottom: 0;
+      }
+      
+      .bottom-nav {
+        position: sticky;
+        border-radius: 0 0 10px 10px;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <div id="app"></div>
+  
+  <!-- Cargar JavaScript -->
   <script src="js/app.js"></script>
+  
+  <!-- Service Worker para PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registered successfully:', registration.scope);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed:', error);
+          });
+      });
+    }
+  </script>
 </body>
 </html>

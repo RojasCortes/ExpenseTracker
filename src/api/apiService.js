@@ -286,7 +286,12 @@ const convertCurrency = (amount, fromCurrency, toCurrency) => {
 
 const formatCurrency = (amount, currency) => {
   if (currency === 'USD') {
-    return `$${amount.toFixed(2)} USD`;
+    // Usar toLocaleString también para USD para tener separadores de miles
+    return `$${parseFloat(amount).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true
+    })} USD`;
   }
   
   if (currency === 'COP') {

@@ -1359,7 +1359,22 @@ function updateUI() {
 // Formatear moneda
 function formatMoney(amount, currency, simplified = false) {
   if (currency === 'USD') {
-    return simplified ? `$${amount.toFixed(0)} USD` : `$${amount.toFixed(2)} USD`;
+    // Para la versión simplificada (gráficos)
+    if (simplified) {
+      if (amount >= 1000000) {
+        return `$${(amount / 1000000).toFixed(1)}M USD`;
+      } else if (amount >= 1000) {
+        return `$${(amount / 1000).toFixed(0)}k USD`;
+      } else {
+        return `$${amount.toFixed(0)} USD`;
+      }
+    }
+    // Versión completa con separadores de miles para USD
+    return `$${parseFloat(amount).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true
+    })} USD`;
   } else {
     // Para la versión simplificada (gráficos)
     if (simplified) {
