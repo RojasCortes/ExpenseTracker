@@ -516,42 +516,59 @@
       color: white;
     }
     
-    /* Floating Action Button */
-    .fab {
-      background-color: var(--primary-color);
-      color: white;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
+    /* Botones de agregar integrados */
+    .add-button {
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 5px;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: fixed; 
-      bottom: 76px; /* Ajustado ligeramente por encima del menú inferior */
-      right: 16px;
-      z-index: 9999; /* Valor más alto para estar por encima de todo */
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      border: none;
-      cursor: pointer;
-      transition: transform 0.2s, background-color 0.3s;
-      font-size: 24px; /* Agregar tamaño de fuente para el ícono */
-    }
-
-    /* Mejoras visuales al botón */
-    .fab:hover {
-      background-color: var(--primary-dark);
-    }
-
-    /* Para pantallas más pequeñas, ajustamos la posición */
-    @media (max-width: 768px) {
-      .fab {
-        bottom: 75px; /* Un poco más arriba del menú inferior */
-        right: 16px;
-      }
+      padding: 10px;
+      border-radius: 8px;
+      transition: transform 0.2s;
     }
     
-    .fab:active {
-      transform: scale(0.95);
+    .add-button:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-success {
+      background-color: var(--success-color);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #2a9055;
+    }
+    
+    /* Botones de acción en secciones específicas */
+    .section-add-btn {
+      background-color: var(--light-color);
+      border: 1px dashed var(--secondary-color);
+      color: var(--secondary-color);
+      width: 100%;
+      padding: 12px 16px;
+      text-align: center;
+      border-radius: 8px;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .section-add-btn:hover {
+      background-color: rgba(0, 0, 0, 0.03);
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    [data-theme="dark"] .section-add-btn {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    [data-theme="dark"] .section-add-btn:hover {
+      background-color: rgba(255, 255, 255, 0.1);
     }
     
     /* Forms */

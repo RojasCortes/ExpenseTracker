@@ -118,45 +118,6 @@ function setupEventListeners() {
     });
   });
   
-  // Botón de agregar (FAB)
-  document.getElementById('add-button').addEventListener('click', () => {
-    if (state.currentView === 'expenses') {
-      // Mostrar un menú de opciones: Agregar Gasto o Agregar Ingreso
-      const modalContainer = document.getElementById('modal-container');
-      modalContainer.innerHTML = `
-        <div class="modal-overlay">
-          <div class="modal" style="max-width: 300px;">
-            <div class="modal-header">
-              <h2 class="modal-title">¿Qué desea agregar?</h2>
-              <button class="modal-close" id="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-              <button id="btn-add-expense" class="btn btn-block mb-2">
-                <i class="fas fa-money-bill-wave mr-2"></i> Agregar Gasto
-              </button>
-              <button id="btn-add-income" class="btn btn-success btn-block">
-                <i class="fas fa-hand-holding-usd mr-2"></i> Agregar Ingreso
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      // Configurar eventos
-      document.getElementById('close-modal').addEventListener('click', closeAllModals);
-      document.getElementById('btn-add-expense').addEventListener('click', () => {
-        closeAllModals();
-        showAddExpenseModal();
-      });
-      document.getElementById('btn-add-income').addEventListener('click', () => {
-        closeAllModals();
-        showAddIncomeModal();
-      });
-    } else if (state.currentView === 'accounts') {
-      showAddAccountModal();
-    }
-  });
-  
   // Otras interacciones globales
   document.addEventListener('click', (e) => {
     // Cerrar modales con overlay
@@ -168,6 +129,90 @@ function setupEventListeners() {
     if (e.target.classList.contains('currency-option')) {
       const currency = e.target.dataset.currency;
       changeCurrency(currency);
+    }
+    
+    // Botones para agregar cuentas
+    if (e.target.id === 'add-account-dashboard-btn' || 
+        e.target.closest('#add-account-dashboard-btn') ||
+        e.target.id === 'add-account-empty-btn') {
+      showAddAccountModal();
+    }
+    
+    // Botones para agregar gastos
+    if (e.target.id === 'add-expense-dashboard-btn' || 
+        e.target.closest('#add-expense-dashboard-btn') ||
+        e.target.id === 'add-expense-empty-btn' ||
+        e.target.id === 'add-expense-btn') {
+      showAddExpenseModal();
+    }
+    
+    // Botones para agregar ingresos
+    if (e.target.id === 'add-income-btn' ||
+        e.target.id === 'add-income-empty-btn') {
+      showAddIncomeModal();
+    }
+    
+    // Tab switching en el dashboard para ajustar botón de añadir
+    if (e.target.id === 'expenses-tab') {
+      if (document.getElementById('transaction-add-btn-container')) {
+        const btnContainer = document.getElementById('transaction-add-btn-container');
+        btnContainer.innerHTML = `
+          <button class="btn-edit-account" id="add-expense-dashboard-btn" style="background: none; border: none; cursor: pointer;">
+            <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+          </button>
+        `;
+      }
+      if (document.getElementById('transaction-add-section')) {
+        document.getElementById('transaction-add-section').innerHTML = state.expenses.length === 0 ? 
+          `<button class="section-add-btn" id="add-expense-empty-btn">
+            <i class="fas fa-plus mr-2"></i> Agregar mi primer gasto
+          </button>` : '';
+      }
+    }
+    
+    if (e.target.id === 'incomes-tab') {
+      if (document.getElementById('transaction-add-btn-container')) {
+        const btnContainer = document.getElementById('transaction-add-btn-container');
+        btnContainer.innerHTML = `
+          <button class="btn-edit-account" id="add-income-dashboard-btn" style="background: none; border: none; cursor: pointer;">
+            <i class="fas fa-plus-circle" style="color: var(--success-color);"></i>
+          </button>
+        `;
+        
+        // Agregar evento al botón de ingreso
+        setTimeout(() => {
+          const incomeBtn = document.getElementById('add-income-dashboard-btn');
+          if (incomeBtn) {
+            incomeBtn.addEventListener('click', showAddIncomeModal);
+          }
+        }, 0);
+      }
+      
+      if (document.getElementById('transaction-add-section')) {
+        document.getElementById('transaction-add-section').innerHTML = state.incomes.length === 0 ? 
+          `<button class="section-add-btn" id="add-income-empty-btn">
+            <i class="fas fa-plus mr-2"></i> Agregar mi primer ingreso
+          </button>` : '';
+      }
+    }
+    
+    // Mostrar/ocultar botones correspondientes en el tab de resumen
+    if (e.target.id === 'expense-summary-tab') {
+      if (document.getElementById('expense-summary-content')) {
+        document.getElementById('expense-summary-content').style.display = 'block';
+        document.getElementById('income-summary-content').style.display = 'none';
+        e.target.classList.add('active');
+        document.getElementById('income-summary-tab')?.classList.remove('active');
+      }
+    }
+    
+    if (e.target.id === 'income-summary-tab') {
+      if (document.getElementById('income-summary-content')) {
+        document.getElementById('income-summary-content').style.display = 'block';
+        document.getElementById('expense-summary-content').style.display = 'none';
+        e.target.classList.add('active');
+        document.getElementById('expense-summary-tab')?.classList.remove('active');
+      }
     }
   });
 }
@@ -292,9 +337,13 @@ function renderDashboardView() {
       </div>
       
       <div class="stat-card">
-        <i class="fas fa-exchange-alt" style="color: var(--success-color)"></i>
-        <div class="stat-value">${state.summary.expenseCount}</div>
-        <div class="stat-label">Transacciones</div>
+        <i class="fas fa-hand-holding-usd" style="color: var(--success-color)"></i>
+        <div class="stat-value">${
+          state.selectedCurrency === 'USD'
+          ? formatMoney(state.summary?.totalIncomesUSD || 0, 'USD')
+          : formatMoney(state.summary?.totalIncomes || 0, 'COP')
+        }</div>
+        <div class="stat-label">Ingresos Mes</div>
       </div>
       
       <div class="stat-card">
@@ -305,12 +354,21 @@ function renderDashboardView() {
     </div>
     
     <div class="card">
-      <div class="card-title">Mis Cuentas</div>
+      <div class="card-title">
+        Mis Cuentas
+        <button class="btn-edit-account" id="add-account-dashboard-btn" style="float: right; background: none; border: none; cursor: pointer;">
+          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+        </button>
+      </div>
       <div class="list-container">
         ${state.accounts.length === 0 ? 
           '<div class="text-center my-4">No hay cuentas registradas</div>' : 
           renderAccountsListItems(state.accounts.slice(0, 3))}
       </div>
+      ${state.accounts.length === 0 ? 
+        `<button class="section-add-btn" id="add-account-empty-btn">
+          <i class="fas fa-plus mr-2"></i> Agregar mi primera cuenta
+        </button>` : ''}
     </div>
     
     <div class="card">
@@ -321,7 +379,14 @@ function renderDashboardView() {
     </div>
     
     <div class="card">
-      <div class="card-title">Transacciones Recientes</div>
+      <div class="card-title">
+        Transacciones Recientes
+        <span id="transaction-add-btn-container" style="float: right;">
+          <button class="btn-edit-account" id="add-expense-dashboard-btn" style="background: none; border: none; cursor: pointer;">
+            <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+          </button>
+        </span>
+      </div>
       <div class="transaction-tabs">
         <button class="tab-btn active" id="expenses-tab">Gastos</button>
         <button class="tab-btn" id="incomes-tab">Ingresos</button>
@@ -330,6 +395,12 @@ function renderDashboardView() {
         ${state.expenses.length === 0 ? 
           '<div class="text-center my-4">No hay gastos registrados</div>' : 
           renderExpensesListItems(state.expenses.slice(0, 5))}
+      </div>
+      <div id="transaction-add-section">
+        ${state.expenses.length === 0 ? 
+          `<button class="section-add-btn" id="add-expense-empty-btn">
+            <i class="fas fa-plus mr-2"></i> Agregar mi primer gasto
+          </button>` : ''}
       </div>
     </div>
   `;
@@ -751,27 +822,62 @@ function renderReportsView() {
     <div class="card">
       <div class="card-title">Resumen del Mes</div>
       
-      <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-        <div>
-          <div style="font-size: 14px; color: #777;">Total Gastos</div>
-          <div style="font-size: 24px; font-weight: bold; color: var(--danger-color);">
-            ${
-              state.selectedCurrency === 'USD'
-              ? formatMoney(state.summary?.totalExpensesUSD || 0, 'USD')
-              : formatMoney(state.summary?.totalExpenses || 0, 'COP')
-            }
-          </div>
-        </div>
-        
-        <div>
-          <div style="font-size: 14px; color: #777;">Transacciones</div>
-          <div style="font-size: 24px; font-weight: bold;">
-            ${state.summary?.expenseCount || 0}
-          </div>
-        </div>
+      <div class="transaction-tabs">
+        <button class="tab-btn active" id="expense-summary-tab">Gastos</button>
+        <button class="tab-btn" id="income-summary-tab">Ingresos</button>
       </div>
       
-      <div class="currency-selector" style="margin-bottom: 20px;">
+      <div id="expense-summary-content">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 14px; color: #777;">Total Gastos</div>
+            <div style="font-size: 24px; font-weight: bold; color: var(--danger-color);">
+              ${
+                state.selectedCurrency === 'USD'
+                ? formatMoney(state.summary?.totalExpensesUSD || 0, 'USD')
+                : formatMoney(state.summary?.totalExpenses || 0, 'COP')
+              }
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-size: 14px; color: #777;">Transacciones</div>
+            <div style="font-size: 24px; font-weight: bold;">
+              ${state.summary?.expenseCount || 0}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary add-button" id="add-expense-btn">
+          <i class="fas fa-plus mr-2"></i> Agregar Gasto
+        </button>
+      </div>
+      
+      <div id="income-summary-content" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 14px; color: #777;">Total Ingresos</div>
+            <div style="font-size: 24px; font-weight: bold; color: var(--success-color);">
+              ${
+                state.selectedCurrency === 'USD'
+                ? formatMoney(state.summary?.totalIncomesUSD || 0, 'USD')
+                : formatMoney(state.summary?.totalIncomes || 0, 'COP')
+              }
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-size: 14px; color: #777;">Transacciones</div>
+            <div style="font-size: 24px; font-weight: bold;">
+              ${state.summary?.incomeCount || 0}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-success add-button" id="add-income-btn">
+          <i class="fas fa-plus mr-2"></i> Agregar Ingreso
+        </button>
+      </div>
+      
+      <div class="currency-selector" style="margin-bottom: 20px; margin-top: 20px;">
         <div class="currency-option ${state.selectedCurrency === 'COP' ? 'active' : ''}" data-currency="COP">COP</div>
         <div class="currency-option ${state.selectedCurrency === 'USD' ? 'active' : ''}" data-currency="USD">USD</div>
       </div>
