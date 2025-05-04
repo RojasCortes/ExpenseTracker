@@ -66,16 +66,16 @@ function renderApp() {
         background-color: #007bff;
         color: white;
         border: none;
-        border-radius: 30px;
-        padding: 10px 20px;
-        font-size: 14px;
+        border-radius: 20px;
+        padding: 8px 15px;
+        font-size: 12px;
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         transition: all 0.3s ease;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
