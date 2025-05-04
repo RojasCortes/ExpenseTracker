@@ -377,7 +377,14 @@ function navigateTo(view) {
     }
   });
   
-  // Ya no usamos el botón flotante global
+  // Asegurarse que la barra de navegación esté visible
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.style.display = 'flex';
+    
+    // Hacer scroll al inicio de la página al cambiar de vista
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   
   // Renderizar la vista actual
   renderCurrentView();
