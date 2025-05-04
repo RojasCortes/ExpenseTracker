@@ -119,6 +119,20 @@ app.get('/api/summary', (req, res) => {
   }
 });
 
+// Ruta para obtener la tasa de cambio actual
+app.get('/api/exchange-rate', (req, res) => {
+  try {
+    // Devolver las tasas de cambio actuales
+    res.json({
+      USD_TO_COP: apiService.getExchangeRates().USD_TO_COP,
+      COP_TO_USD: apiService.getExchangeRates().COP_TO_USD,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/export/excel', (req, res) => {
   try {
     const { month, year } = req.query;

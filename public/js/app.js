@@ -16,6 +16,11 @@ const state = {
   currentMonth: new Date().getMonth() + 1,
   currentYear: new Date().getFullYear(),
   loading: false,
+  exchangeRate: {
+    USD_TO_COP: 4000,
+    COP_TO_USD: 0.00025,
+    lastUpdated: null
+  },
   modals: {
     addExpense: false,
     addAccount: false
@@ -45,6 +50,7 @@ async function initApp() {
   setupEventListeners();
   
   // Cargar datos iniciales
+  await fetchExchangeRate();
   await fetchAccounts();
   await fetchExpenses();
   await fetchSummary();
@@ -509,6 +515,19 @@ function renderReportsView() {
   
   const monthName = monthNames[currentMonth - 1];
   
+  // Formatear la tasa de cambio actual
+  const exchangeRateFormatted = `$${state.exchangeRate.USD_TO_COP.toLocaleString('es-CO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })} COP`;
+  
+  // Formatear fecha de actualización
+  let lastUpdated = 'Sin datos';
+  if (state.exchangeRate.lastUpdated) {
+    const date = new Date(state.exchangeRate.lastUpdated);
+    lastUpdated = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  }
+  
   viewContainer.innerHTML = `
     <div class="card">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
@@ -525,6 +544,22 @@ function renderReportsView() {
           <i class="fas fa-chevron-right"></i>
         </button>
       </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">Tasa de Cambio Actual</div>
+      <div style="text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 14px; color: #777;">1 USD =</div>
+        <div style="font-size: 24px; font-weight: bold; color: var(--primary-color);">
+          ${exchangeRateFormatted}
+        </div>
+        <div style="font-size: 12px; color: #777; margin-top: 5px;">
+          Última actualización: ${lastUpdated}
+        </div>
+      </div>
+      <button id="refresh-rate" class="btn btn-primary btn-block">
+        <i class="fas fa-sync-alt mr-2"></i> Actualizar Tasa de Cambio
+      </button>
     </div>
     
     <div class="card">
@@ -599,6 +634,23 @@ function renderReportsView() {
     
     await fetchSummary();
     renderReportsView();
+  });
+  
+  // Configurar evento para actualizar tasa de cambio
+  document.getElementById('refresh-rate').addEventListener('click', async () => {
+    const button = document.getElementById('refresh-rate');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Actualizando...';
+    
+    try {
+      await fetchExchangeRate();
+      renderReportsView();
+    } catch (error) {
+      console.error('Error al actualizar tasa de cambio:', error);
+      alert('Error al actualizar tasa de cambio. Intente de nuevo más tarde.');
+    } finally {
+      button.disabled = false;
+    }
   });
   
   // Configurar navegación de tabs
@@ -1175,6 +1227,32 @@ function renderDailyExpensesChart() {
 }
 
 // FUNCIONES DE API
+
+// Obtener tasa de cambio actualizada
+async function fetchExchangeRate() {
+  try {
+    state.loading = true;
+    
+    const response = await fetch('/api/exchange-rate');
+    if (!response.ok) {
+      throw new Error('Error al cargar tasa de cambio');
+    }
+    
+    const exchangeRateData = await response.json();
+    
+    state.exchangeRate = {
+      USD_TO_COP: exchangeRateData.USD_TO_COP,
+      COP_TO_USD: exchangeRateData.COP_TO_USD,
+      lastUpdated: exchangeRateData.lastUpdated
+    };
+    
+    console.log('Tasa de cambio actualizada:', state.exchangeRate);
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+  } finally {
+    state.loading = false;
+  }
+}
 
 // Obtener cuentas
 async function fetchAccounts() {

@@ -4,11 +4,44 @@ const xlsx = require('xlsx');
 let accounts = [];
 let expenses = [];
 
-// Constantes para conversión de monedas
-const EXCHANGE_RATES = {
+// Constantes para conversión de monedas (valores por defecto si la API falla)
+let EXCHANGE_RATES = {
   USD_TO_COP: 4000, // 1 USD = 4000 COP
   COP_TO_USD: 0.00025 // 1 COP = 0.00025 USD
 };
+
+// Función para actualizar las tasas de cambio desde una API externa
+async function updateExchangeRates() {
+  try {
+    // Usamos la API gratuita de Exchange Rates Data 
+    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    
+    if (!response.ok) {
+      console.error('Error al obtener tasas de cambio:', response.statusText);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    // Verificar si tenemos la tasa para COP
+    if (data.rates && data.rates.COP) {
+      // Actualizar las constantes con los nuevos valores
+      EXCHANGE_RATES.USD_TO_COP = data.rates.COP;
+      EXCHANGE_RATES.COP_TO_USD = 1 / data.rates.COP;
+      
+      console.log('Tasas de cambio actualizadas:', EXCHANGE_RATES);
+    }
+  } catch (error) {
+    console.error('Error al actualizar tasas de cambio:', error);
+    // En caso de error, mantenemos los valores por defecto
+  }
+}
+
+// Intentar actualizar las tasas al iniciar la aplicación
+updateExchangeRates();
+
+// Programar actualización diaria (cada 24 horas)
+setInterval(updateExchangeRates, 24 * 60 * 60 * 1000);
 
 // Función para generar IDs únicos
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -443,6 +476,14 @@ const generateExcel = (month, year) => {
   return excelBuffer;
 };
 
+// Función para obtener las tasas de cambio actuales
+const getExchangeRates = () => {
+  return {
+    USD_TO_COP: EXCHANGE_RATES.USD_TO_COP,
+    COP_TO_USD: EXCHANGE_RATES.COP_TO_USD
+  };
+};
+
 module.exports = {
   initializeData,
   getAccounts,
@@ -456,5 +497,7 @@ module.exports = {
   getMonthlySummary,
   generateExcel,
   convertCurrency,
-  formatCurrency
+  formatCurrency,
+  getExchangeRates,
+  updateExchangeRates
 };
