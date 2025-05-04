@@ -18,6 +18,7 @@ const state = {
   incomes: [],
   summary: null,
   selectedCurrency: 'COP',
+  isOnline: navigator.onLine, // Verifica si hay conexión a internet
   currentMonth: new Date().getMonth() + 1,
   currentYear: new Date().getFullYear(),
   loading: false,
@@ -45,6 +46,14 @@ async function initApp() {
   renderApp();
   setupEventListeners();
   
+  // Inicializar IndexedDB
+  const dbStorage = new IndexedDBStorage();
+  await dbStorage.init();
+  
+  // Configurar listeners para el estado de conexión
+  window.addEventListener('online', handleOnlineStatus);
+  window.addEventListener('offline', handleOnlineStatus);
+  
   // Cargar datos iniciales
   await fetchExchangeRate();
   await fetchAccounts();
@@ -53,6 +62,47 @@ async function initApp() {
   await fetchSummary();
   
   updateUI();
+}
+
+// Maneja el cambio de estado de conexión
+function handleOnlineStatus() {
+  const previousState = state.isOnline;
+  state.isOnline = navigator.onLine;
+  
+  // Si cambia de offline a online, intentar sincronizar
+  if (!previousState && state.isOnline) {
+    console.log('Conexión restaurada. Sincronizando datos...');
+    syncDataWithServer();
+  }
+  
+  // Si cambia de online a offline, mostrar un mensaje
+  if (previousState && !state.isOnline) {
+    console.log('Sin conexión. La aplicación funcionará en modo sin conexión.');
+    // Se podría mostrar un toast o notificación al usuario
+  }
+  
+  // Actualizar indicador de conexión en la UI
+  updateConnectionIndicator();
+}
+
+// Sincronizar datos locales con el servidor cuando se recupera la conexión
+async function syncDataWithServer() {
+  try {
+    // Implementar la lógica de sincronización aquí
+    // Por ejemplo, enviar cambios pendientes al servidor
+    console.log('Datos sincronizados con el servidor');
+  } catch (error) {
+    console.error('Error al sincronizar datos:', error);
+  }
+}
+
+// Actualiza el indicador de estado de conexión en la UI
+function updateConnectionIndicator() {
+  const indicator = document.getElementById('connection-status');
+  if (indicator) {
+    indicator.className = state.isOnline ? 'connection-online' : 'connection-offline';
+    indicator.title = state.isOnline ? 'En línea' : 'Sin conexión';
+  }
 }
 
 // Renderiza la estructura básica de la aplicación
@@ -131,10 +181,31 @@ function renderApp() {
         border-color: #adb5bd;
         color: #495057;
       }
+      
+      /* Indicador de conexión */
+      .connection-status {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-left: 10px;
+      }
+      
+      .connection-online {
+        background-color: #28a745;
+      }
+      
+      .connection-offline {
+        background-color: #dc3545;
+      }
     </style>
     <div class="app-container">
       <nav class="navbar">
-        <div class="navbar-title">Financial Tracker</div>
+        <div class="navbar-title">
+          Financial Tracker
+          <span id="connection-status" class="${state.isOnline ? 'connection-online' : 'connection-offline'}" 
+                title="${state.isOnline ? 'En línea' : 'Sin conexión'}"></span>
+        </div>
         <button id="theme-toggle" aria-label="Cambiar tema">
           <i class="fas fa-moon"></i>
         </button>

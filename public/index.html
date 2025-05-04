@@ -793,6 +793,17 @@
       color: var(--primary-color);
     }
     
+    /* Fix for bottom nav sticking properly across all sections */
+    #view-container {
+      padding-bottom: calc(var(--bottom-nav-height) + 20px);
+    }
+
+    /* Ensure the bottom nav is always visible and at the bottom */
+    html, body {
+      height: 100%;
+      position: relative;
+    }
+
     /* Media Queries for larger screens */
     @media (min-width: 768px) {
       .app-container {
