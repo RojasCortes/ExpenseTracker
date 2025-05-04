@@ -2109,9 +2109,57 @@ async function fetchExchangeRate() {
   try {
     state.loading = true;
     
+    // Primero intenta obtener las tasas de cambio desde IndexedDB
+    const dbStorage = new IndexedDBStorage();
+    const storedRates = await dbStorage.getExchangeRate();
+    
+    if (storedRates) {
+      // Si existen tasas almacenadas localmente, úsalas
+      state.exchangeRate = storedRates;
+      console.log('Tasa de cambio cargada desde almacenamiento local:', state.exchangeRate);
+      
+      // Si estamos online, verifica si necesitamos actualizar (más de 24 horas)
+      if (state.isOnline && storedRates.lastUpdated) {
+        const lastUpdated = new Date(storedRates.lastUpdated);
+        const now = new Date();
+        const hoursSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60);
+        
+        // Si han pasado más de 24 horas, actualiza en segundo plano
+        if (hoursSinceUpdate > 24) {
+          updateExchangeRateFromServer();
+        }
+      }
+    } else if (state.isOnline) {
+      // Si no hay datos locales y estamos online, obtén del servidor
+      await updateExchangeRateFromServer();
+    } else {
+      // Sin conexión y sin datos locales, usa valores predeterminados
+      state.exchangeRate = {
+        USD_TO_COP: 4234.19,
+        COP_TO_USD: 1 / 4234.19,
+        lastUpdated: new Date().toISOString()
+      };
+      console.warn('Sin conexión: usando tasas de cambio predeterminadas');
+    }
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    // Usa valores predeterminados en caso de error
+    state.exchangeRate = {
+      USD_TO_COP: 4234.19,
+      COP_TO_USD: 1 / 4234.19,
+      lastUpdated: new Date().toISOString()
+    };
+  } finally {
+    state.loading = false;
+  }
+}
+
+// Función auxiliar para actualizar tasas de cambio desde el servidor
+async function updateExchangeRateFromServer() {
+  try {
     const response = await fetch('/api/exchange-rate');
     if (!response.ok) {
-      throw new Error('Error al cargar tasa de cambio');
+      throw new Error('Error al cargar tasa de cambio desde el servidor');
     }
     
     const exchangeRateData = await response.json();
@@ -2119,14 +2167,17 @@ async function fetchExchangeRate() {
     state.exchangeRate = {
       USD_TO_COP: exchangeRateData.USD_TO_COP,
       COP_TO_USD: exchangeRateData.COP_TO_USD,
-      lastUpdated: exchangeRateData.lastUpdated
+      lastUpdated: new Date().toISOString()
     };
     
-    console.log('Tasa de cambio actualizada:', state.exchangeRate);
+    // Guardar en IndexedDB
+    const dbStorage = new IndexedDBStorage();
+    await dbStorage.saveExchangeRate(state.exchangeRate);
+    
+    console.log('Tasa de cambio actualizada desde el servidor:', state.exchangeRate);
   } catch (error) {
-    console.error('Error fetching exchange rate:', error);
-  } finally {
-    state.loading = false;
+    console.error('Error al actualizar tasa de cambio desde el servidor:', error);
+    throw error;
   }
 }
 
