@@ -137,7 +137,37 @@ function setupEventListeners() {
   // Botón de agregar (FAB)
   document.getElementById('add-button').addEventListener('click', () => {
     if (state.currentView === 'expenses') {
-      showAddExpenseModal();
+      // Mostrar un menú de opciones: Agregar Gasto o Agregar Ingreso
+      const modalContainer = document.getElementById('modal-container');
+      modalContainer.innerHTML = `
+        <div class="modal-overlay">
+          <div class="modal" style="max-width: 300px;">
+            <div class="modal-header">
+              <h2 class="modal-title">¿Qué desea agregar?</h2>
+              <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <button id="btn-add-expense" class="btn btn-block mb-2">
+                <i class="fas fa-money-bill-wave mr-2"></i> Agregar Gasto
+              </button>
+              <button id="btn-add-income" class="btn btn-success btn-block">
+                <i class="fas fa-hand-holding-usd mr-2"></i> Agregar Ingreso
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Configurar eventos
+      document.getElementById('close-modal').addEventListener('click', closeAllModals);
+      document.getElementById('btn-add-expense').addEventListener('click', () => {
+        closeAllModals();
+        showAddExpenseModal();
+      });
+      document.getElementById('btn-add-income').addEventListener('click', () => {
+        closeAllModals();
+        showAddIncomeModal();
+      });
     } else if (state.currentView === 'accounts') {
       showAddAccountModal();
     }
@@ -307,8 +337,12 @@ function renderDashboardView() {
     </div>
     
     <div class="card">
-      <div class="card-title">Gastos Recientes</div>
-      <div class="list-container">
+      <div class="card-title">Transacciones Recientes</div>
+      <div class="transaction-tabs">
+        <button class="tab-btn active" id="expenses-tab">Gastos</button>
+        <button class="tab-btn" id="incomes-tab">Ingresos</button>
+      </div>
+      <div class="list-container" id="transactions-list">
         ${state.expenses.length === 0 ? 
           '<div class="text-center my-4">No hay gastos registrados</div>' : 
           renderExpensesListItems(state.expenses.slice(0, 5))}
@@ -319,6 +353,29 @@ function renderDashboardView() {
   // Inicializar gráficos después de que el DOM esté actualizado
   setTimeout(() => {
     renderCategoriesChart();
+    
+    // Configurar eventos para cambiar entre gastos e ingresos
+    const expensesTab = document.getElementById('expenses-tab');
+    const incomesTab = document.getElementById('incomes-tab');
+    const transactionsList = document.getElementById('transactions-list');
+    
+    if (expensesTab && incomesTab && transactionsList) {
+      expensesTab.addEventListener('click', () => {
+        expensesTab.classList.add('active');
+        incomesTab.classList.remove('active');
+        transactionsList.innerHTML = state.expenses.length === 0 ? 
+          '<div class="text-center my-4">No hay gastos registrados</div>' : 
+          renderExpensesListItems(state.expenses.slice(0, 5));
+      });
+      
+      incomesTab.addEventListener('click', () => {
+        incomesTab.classList.add('active');
+        expensesTab.classList.remove('active');
+        transactionsList.innerHTML = state.incomes.length === 0 ? 
+          '<div class="text-center my-4">No hay ingresos registrados</div>' : 
+          renderIncomesListItems(state.incomes.slice(0, 5));
+      });
+    }
   }, 100);
 }
 
@@ -767,6 +824,36 @@ function renderExpensesListItems(expenses) {
   }).join('');
 }
 
+// Renderizar elementos de la lista de ingresos
+function renderIncomesListItems(incomes) {
+  if (!incomes || incomes.length === 0) {
+    return '<div class="text-center my-4">No hay ingresos disponibles</div>';
+  }
+  
+  return incomes.map(income => {
+    const account = state.accounts.find(acc => acc.id === income.accountId);
+    const accountName = account ? account.name : 'Sin cuenta';
+    
+    return `
+      <div class="list-item income-item" data-id="${income.id}">
+        <div class="item-icon" style="background-color: ${getIncomeTypeColor(income.type)}">
+          <i class="fas fa-${getIncomeTypeIcon(income.type)}"></i>
+        </div>
+        <div class="item-details">
+          <div class="item-title">${income.type}</div>
+          <div class="item-subtitle">
+            ${new Date(income.date).toLocaleDateString()} · ${accountName}
+          </div>
+          <div class="item-description">${income.description || ''}</div>
+        </div>
+        <div class="item-amount amount-positive">
+          +${formatMoney(income.amount, income.currency)}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // Modal para agregar gasto
 function showAddExpenseModal() {
   const modalContainer = document.getElementById('modal-container');
@@ -959,6 +1046,117 @@ function showAddAccountModal() {
       renderCurrentView();
     } catch (error) {
       alert('Error al agregar la cuenta: ' + error.message);
+    }
+  });
+}
+
+// Modal para agregar ingreso
+function showAddIncomeModal() {
+  const modalContainer = document.getElementById('modal-container');
+  
+  modalContainer.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Agregar Ingreso</h2>
+          <button class="modal-close" id="close-modal">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <form id="add-income-form">
+            <div class="form-group">
+              <label class="form-label" for="income-amount">Monto</label>
+              <input type="number" id="income-amount" class="form-control" placeholder="0.00" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Moneda</label>
+              <div style="display: flex; gap: 10px;">
+                <label style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
+                  <input type="radio" name="income-currency" value="COP" checked style="margin-right: 5px;">
+                  COP
+                </label>
+                <label style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
+                  <input type="radio" name="income-currency" value="USD" style="margin-right: 5px;">
+                  USD
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="income-date">Fecha</label>
+              <input type="date" id="income-date" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="income-type">Tipo de Ingreso</label>
+              <select id="income-type" class="form-control form-select" required>
+                <option value="">Seleccionar tipo</option>
+                ${INCOME_TYPES.map(type => `<option value="${type}">${type}</option>`).join('')}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="income-account">Cuenta</label>
+              <select id="income-account" class="form-control form-select">
+                <option value="">Sin cuenta asociada</option>
+                ${state.accounts.map(account => `<option value="${account.id}">${account.name} (${formatMoney(account.balance, account.currency)})</option>`).join('')}
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="income-description">Descripción (opcional)</label>
+              <input type="text" id="income-description" class="form-control" placeholder="Descripción del ingreso">
+            </div>
+          </form>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn" id="cancel-income">Cancelar</button>
+          <button class="btn btn-success" id="save-income">Guardar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Configurar fecha actual por defecto
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('income-date').value = today;
+  
+  // Configurar eventos de botones
+  document.getElementById('close-modal').addEventListener('click', closeAllModals);
+  document.getElementById('cancel-income').addEventListener('click', closeAllModals);
+  
+  document.getElementById('save-income').addEventListener('click', async () => {
+    const amount = document.getElementById('income-amount').value;
+    const currency = document.querySelector('input[name="income-currency"]:checked').value;
+    const date = document.getElementById('income-date').value;
+    const type = document.getElementById('income-type').value;
+    const accountId = document.getElementById('income-account').value || null;
+    const description = document.getElementById('income-description').value;
+    
+    if (!amount || !date || !type) {
+      alert('Por favor complete todos los campos obligatorios');
+      return;
+    }
+    
+    try {
+      await addIncome({
+        amount: parseFloat(amount),
+        currency,
+        date,
+        type,
+        accountId,
+        description
+      });
+      
+      closeAllModals();
+      await fetchIncomes();
+      await fetchAccounts();
+      await fetchSummary();
+      renderCurrentView();
+    } catch (error) {
+      alert('Error al agregar el ingreso: ' + error.message);
     }
   });
 }
@@ -1703,6 +1901,34 @@ function getAccountIcon(accountName) {
   } else {
     return 'credit-card';
   }
+}
+
+// Obtener color para tipo de ingreso
+function getIncomeTypeColor(type) {
+  const colors = {
+    'Salario': '#34C759',        // Verde
+    'Freelance': '#5AC8FA',      // Azul claro
+    'Inversiones': '#AF52DE',    // Púrpura
+    'Regalo': '#FF9500',         // Naranja
+    'Reembolso': '#007AFF',      // Azul
+    'Otro': '#8E8E93'            // Gris
+  };
+  
+  return colors[type] || '#8E8E93';
+}
+
+// Obtener ícono para tipo de ingreso
+function getIncomeTypeIcon(type) {
+  const icons = {
+    'Salario': 'money-check-alt',
+    'Freelance': 'laptop-code',
+    'Inversiones': 'chart-line',
+    'Regalo': 'gift',
+    'Reembolso': 'undo',
+    'Otro': 'hand-holding-usd'
+  };
+  
+  return icons[type] || 'hand-holding-usd';
 }
 
 // Cargar Chart.js para los gráficos
