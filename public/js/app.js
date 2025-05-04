@@ -211,7 +211,8 @@ function renderDashboardView() {
   // Formateo de datos para la moneda seleccionada
   const formatAmount = (amount) => {
     if (state.selectedCurrency === 'USD') {
-      const usdAmount = amount / 4000; // Convertir de COP a USD
+      // Usar tasa de cambio actualizada
+      const usdAmount = amount * state.exchangeRate.COP_TO_USD;
       return `$${usdAmount.toFixed(2)}`;
     } else {
       return `$${Math.round(amount).toLocaleString('es-CO')}`;
@@ -223,9 +224,13 @@ function renderDashboardView() {
   state.accounts.forEach(account => {
     let accountBalance = account.balance;
     if (account.currency !== state.selectedCurrency) {
-      accountBalance = state.selectedCurrency === 'USD' ? 
-        accountBalance * 0.00025 : // COP a USD
-        accountBalance * 4000;     // USD a COP
+      if (state.selectedCurrency === 'USD') {
+        // COP a USD usando tasa actualizada
+        accountBalance = accountBalance * state.exchangeRate.COP_TO_USD;
+      } else {
+        // USD a COP usando tasa actualizada
+        accountBalance = accountBalance * state.exchangeRate.USD_TO_COP;
+      }
     }
     totalBalance += accountBalance;
   });
@@ -233,7 +238,8 @@ function renderDashboardView() {
   // Calcular el total de gastos en la moneda seleccionada
   let totalExpenses = state.summary.totalExpenses;
   if (state.selectedCurrency === 'USD') {
-    totalExpenses = totalExpenses * 0.00025; // Convertir de COP a USD
+    // Convertir de COP a USD usando tasa actualizada
+    totalExpenses = totalExpenses * state.exchangeRate.COP_TO_USD;
   }
   
   // Construir el HTML
@@ -407,9 +413,11 @@ function renderAccountsView() {
   state.accounts.forEach(account => {
     if (account.currency === 'COP') {
       totalBalanceCOP += account.balance;
-      totalBalanceUSD += account.balance * 0.00025; // COP a USD
+      // Usar tasa actualizada para conversión COP a USD
+      totalBalanceUSD += account.balance * state.exchangeRate.COP_TO_USD;
     } else {
-      totalBalanceCOP += account.balance * 4000; // USD a COP
+      // Usar tasa actualizada para conversión USD a COP
+      totalBalanceCOP += account.balance * state.exchangeRate.USD_TO_COP;
       totalBalanceUSD += account.balance;
     }
     
@@ -417,9 +425,10 @@ function renderAccountsView() {
     if (state.selectedCurrency === account.currency) {
       totalBalance += account.balance;
     } else {
+      // Usar tasas actualizadas para conversiones
       totalBalance += state.selectedCurrency === 'USD' ? 
-        account.balance * 0.00025 : // COP a USD
-        account.balance * 4000;     // USD a COP
+        account.balance * state.exchangeRate.COP_TO_USD : // COP a USD
+        account.balance * state.exchangeRate.USD_TO_COP;  // USD a COP
     }
   });
   
@@ -1050,10 +1059,10 @@ function renderCategoriesChart() {
   const categories = Object.keys(expensesByCategory);
   const amounts = Object.values(expensesByCategory);
   
-  // Convertir montos a la moneda seleccionada
+  // Convertir montos a la moneda seleccionada usando tasa de cambio actualizada
   const convertedAmounts = amounts.map(amount => {
     if (state.selectedCurrency === 'USD') {
-      return amount * 0.00025; // COP a USD
+      return amount * state.exchangeRate.COP_TO_USD; // COP a USD con tasa actualizada
     }
     return amount;
   });
@@ -1114,10 +1123,10 @@ function renderCategoriesPieChart() {
   const categories = Object.keys(expensesByCategory);
   const amounts = Object.values(expensesByCategory);
   
-  // Convertir montos a la moneda seleccionada
+  // Convertir montos a la moneda seleccionada usando tasa de cambio actualizada
   const convertedAmounts = amounts.map(amount => {
     if (state.selectedCurrency === 'USD') {
-      return amount * 0.00025; // COP a USD
+      return amount * state.exchangeRate.COP_TO_USD; // COP a USD usando tasa actualizada
     }
     return amount;
   });
@@ -1182,7 +1191,9 @@ function renderDailyExpensesChart() {
   // Preparar datos para gráfico
   const expensesData = days.map(day => {
     const dayExpenses = expensesByDay[day] || 0;
-    return state.selectedCurrency === 'USD' ? dayExpenses * 0.00025 : dayExpenses;
+    return state.selectedCurrency === 'USD' ? 
+      dayExpenses * state.exchangeRate.COP_TO_USD : // Usar tasa actualizada
+      dayExpenses;
   });
   
   // Crear gráfico
