@@ -94,12 +94,12 @@ function renderApp() {
         </a>
       </nav>
       
-      <button id="add-button" class="fab">
-        <i class="fas fa-plus"></i>
-      </button>
-      
       <div id="modal-container"></div>
     </div>
+    
+    <button id="add-button" class="fab">
+      <i class="fas fa-plus"></i>
+    </button>
   `;
   
   // Cargar Font Awesome para los íconos
