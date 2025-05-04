@@ -72,10 +72,7 @@ function renderApp() {
         <div id="view-container"></div>
       </main>
       
-      <!-- Colocando el botón fuera del contenedor main para posicionamiento fijo -->
-      <button id="add-button" class="fab">
-        <i class="fas fa-plus"></i>
-      </button>
+      <!-- Ya no usamos el botón flotante global, ahora están integrados en cada sección -->
       
       <nav class="bottom-nav">
         <a href="#" class="nav-item" data-view="dashboard">
@@ -230,13 +227,7 @@ function navigateTo(view) {
     }
   });
   
-  // Mostrar u ocultar FAB según la vista
-  const addButton = document.getElementById('add-button');
-  if (view === 'expenses' || view === 'accounts') {
-    addButton.style.display = 'flex';
-  } else {
-    addButton.style.display = 'none';
-  }
+  // Ya no usamos el botón flotante global
   
   // Renderizar la vista actual
   renderCurrentView();
@@ -443,6 +434,10 @@ function renderExpensesView() {
       <div class="transaction-tabs">
         <button class="tab-btn active" id="expenses-main-tab">Gastos</button>
         <button class="tab-btn" id="incomes-main-tab">Ingresos</button>
+        <span style="flex-grow: 1;"></span>
+        <button class="btn-edit-account" id="expenses-view-add-btn" style="margin-right: 10px;">
+          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+        </button>
       </div>
       
       <div id="expenses-content">
@@ -680,10 +675,18 @@ function renderAccountsView() {
     </div>
     
     <div class="card">
-      <div class="card-title">Mis Cuentas</div>
+      <div class="card-title">
+        Mis Cuentas
+        <button class="btn-edit-account" id="accounts-view-add-btn" style="float: right; background: none; border: none; cursor: pointer;">
+          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+        </button>
+      </div>
       
       ${state.accounts.length === 0 ? 
-        '<div class="text-center my-4">No hay cuentas registradas.<br>¡Agrega tu primera cuenta con el botón +!</div>' : 
+        `<div class="text-center my-4">No hay cuentas registradas.</div>
+         <button class="section-add-btn" id="add-first-account-btn">
+           <i class="fas fa-plus mr-2"></i> Agregar mi primera cuenta
+         </button>` : 
         state.accounts.map(account => `
           <div class="card mb-3">
             <div style="display: flex; align-items: center; margin-bottom: 10px;">
