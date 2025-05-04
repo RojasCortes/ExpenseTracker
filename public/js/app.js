@@ -11,6 +11,7 @@ const state = {
   currentView: 'dashboard',
   accounts: [],
   expenses: [],
+  incomes: [],
   summary: null,
   selectedCurrency: 'COP',
   currentMonth: new Date().getMonth() + 1,
@@ -23,6 +24,7 @@ const state = {
   },
   modals: {
     addExpense: false,
+    addIncome: false,
     addAccount: false
   }
 };
@@ -37,6 +39,16 @@ const CATEGORIES = [
   'Entretenimiento',
   'Educación',
   'Otros'
+];
+
+// Tipos de ingreso
+const INCOME_TYPES = [
+  'Salario',
+  'Freelance',
+  'Inversiones',
+  'Regalo',
+  'Reembolso',
+  'Otro'
 ];
 
 // Inicialización de la aplicación

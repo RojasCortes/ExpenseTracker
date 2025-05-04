@@ -104,6 +104,59 @@ app.delete('/api/expenses/:id', (req, res) => {
   }
 });
 
+// Rutas para ingresos
+app.get('/api/incomes', (req, res) => {
+  try {
+    const { month, year, type, accountId } = req.query;
+    const filters = {};
+    
+    if (month && year) {
+      filters.month = month;
+      filters.year = year;
+    }
+    
+    if (type) {
+      filters.type = type;
+    }
+    
+    if (accountId) {
+      filters.accountId = accountId;
+    }
+    
+    const incomes = apiService.getIncomes(filters);
+    res.json(incomes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/incomes', (req, res) => {
+  try {
+    const income = apiService.addIncome(req.body);
+    res.status(201).json(income);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put('/api/incomes/:id', (req, res) => {
+  try {
+    const income = apiService.updateIncome(req.params.id, req.body);
+    res.json(income);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/incomes/:id', (req, res) => {
+  try {
+    apiService.deleteIncome(req.params.id);
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.get('/api/summary', (req, res) => {
   try {
     const { month, year } = req.query;

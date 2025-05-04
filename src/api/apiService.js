@@ -3,6 +3,7 @@ const xlsx = require('xlsx');
 // Simulación de almacenamiento de datos en memoria
 let accounts = [];
 let expenses = [];
+let incomes = [];
 
 // Constantes para conversión de monedas (valores por defecto si la API falla)
 let EXCHANGE_RATES = {
@@ -83,6 +84,10 @@ const initializeData = () => {
   const currentYear = currentDate.getFullYear();
 
   expenses = [];
+  incomes = [];
+
+  // Tipos de ingresos
+  const incomeTypes = ['Salario', 'Freelance', 'Inversiones', 'Regalo', 'Reembolso', 'Otro'];
 
   // Crear algunos gastos para el mes actual
   for (let i = 1; i <= 20; i++) {
@@ -100,6 +105,27 @@ const initializeData = () => {
       date: date.toISOString(),
       category,
       description: `Gasto de prueba ${i}`,
+      accountId: account.id,
+      createdAt: new Date().toISOString()
+    });
+  }
+  
+  // Crear algunos ingresos para el mes actual
+  for (let i = 1; i <= 5; i++) {
+    const day = Math.min(i * 5, 28); // Distribuir los ingresos a lo largo del mes
+    const date = new Date(currentYear, currentMonth - 1, day);
+    
+    const type = incomeTypes[i % incomeTypes.length];
+    const account = accounts[i % accounts.length];
+    const amount = (i + 1) * 500000; // Ingresos más altos que gastos
+    
+    incomes.push({
+      id: `inc${i}`,
+      amount,
+      currency: account.currency,
+      date: date.toISOString(),
+      type,
+      description: `Ingreso de prueba ${i}`,
       accountId: account.id,
       createdAt: new Date().toISOString()
     });
@@ -515,16 +541,160 @@ const getExchangeRates = () => {
   };
 };
 
+// Funciones para manejar los ingresos
+const getIncomes = (filters = {}) => {
+  let filteredIncomes = [...incomes];
+  
+  // Filtrar por mes y año
+  if (filters.month && filters.year) {
+    const startDate = new Date(parseInt(filters.year), parseInt(filters.month) - 1, 1);
+    const endDate = new Date(parseInt(filters.year), parseInt(filters.month), 0); // Último día del mes
+    
+    filteredIncomes = filteredIncomes.filter(income => {
+      const incomeDate = new Date(income.date);
+      return incomeDate >= startDate && incomeDate <= endDate;
+    });
+  }
+  
+  // Filtrar por tipo de ingreso
+  if (filters.type) {
+    filteredIncomes = filteredIncomes.filter(income => 
+      income.type === filters.type
+    );
+  }
+  
+  // Filtrar por cuenta
+  if (filters.accountId) {
+    filteredIncomes = filteredIncomes.filter(income => 
+      income.accountId === filters.accountId
+    );
+  }
+  
+  // Ordenar por fecha (más recientes primero)
+  return filteredIncomes.sort((a, b) => 
+    new Date(b.date) - new Date(a.date)
+  );
+};
+
+const addIncome = (incomeData) => {
+  const { amount, currency, date, type, description, accountId } = incomeData;
+  
+  if (!amount || !currency || !date || !type) {
+    throw new Error('Faltan campos obligatorios');
+  }
+  
+  const newIncome = {
+    id: generateId(),
+    amount: parseFloat(amount),
+    currency,
+    date: new Date(date).toISOString(),
+    type,
+    description,
+    accountId,
+    createdAt: new Date().toISOString()
+  };
+  
+  // Actualizar el saldo de la cuenta si se proporciona una
+  if (accountId) {
+    const account = accounts.find(acc => acc.id === accountId);
+    if (account) {
+      // Convertir la cantidad a la moneda de la cuenta si es necesario
+      let incomeAmount = parseFloat(amount);
+      if (currency !== account.currency) {
+        incomeAmount = convertCurrency(incomeAmount, currency, account.currency);
+      }
+      
+      // Sumar al saldo (a diferencia de un gasto que resta)
+      account.balance += incomeAmount;
+    }
+  }
+  
+  incomes.push(newIncome);
+  return newIncome;
+};
+
+const updateIncome = (id, incomeData) => {
+  const index = incomes.findIndex(inc => inc.id === id);
+  if (index === -1) {
+    throw new Error('Ingreso no encontrado');
+  }
+  
+  const oldIncome = incomes[index];
+  const { amount, currency, date, type, description, accountId } = incomeData;
+  
+  // Si la cuenta cambió o el monto cambió, actualizar saldos
+  if (oldIncome.accountId && (accountId !== oldIncome.accountId || amount !== oldIncome.amount || currency !== oldIncome.currency)) {
+    // Restaurar el saldo de la cuenta antigua (restar el ingreso anterior)
+    const oldAccount = accounts.find(acc => acc.id === oldIncome.accountId);
+    if (oldAccount) {
+      let oldAmount = oldIncome.amount;
+      if (oldIncome.currency !== oldAccount.currency) {
+        oldAmount = convertCurrency(oldAmount, oldIncome.currency, oldAccount.currency);
+      }
+      oldAccount.balance -= oldAmount;
+    }
+    
+    // Actualizar el saldo de la nueva cuenta (sumar el nuevo ingreso)
+    if (accountId) {
+      const newAccount = accounts.find(acc => acc.id === accountId);
+      if (newAccount) {
+        let newAmount = parseFloat(amount);
+        if (currency !== newAccount.currency) {
+          newAmount = convertCurrency(newAmount, currency, newAccount.currency);
+        }
+        newAccount.balance += newAmount;
+      }
+    }
+  }
+  
+  // Actualizar campos del ingreso
+  if (amount !== undefined) incomes[index].amount = parseFloat(amount);
+  if (currency) incomes[index].currency = currency;
+  if (date) incomes[index].date = new Date(date).toISOString();
+  if (type) incomes[index].type = type;
+  if (description !== undefined) incomes[index].description = description;
+  if (accountId !== undefined) incomes[index].accountId = accountId;
+  
+  return incomes[index];
+};
+
+const deleteIncome = (id) => {
+  const index = incomes.findIndex(inc => inc.id === id);
+  if (index === -1) {
+    throw new Error('Ingreso no encontrado');
+  }
+  
+  const income = incomes[index];
+  
+  // Actualizar el saldo de la cuenta (restar el ingreso)
+  if (income.accountId) {
+    const account = accounts.find(acc => acc.id === income.accountId);
+    if (account) {
+      let amount = income.amount;
+      if (income.currency !== account.currency) {
+        amount = convertCurrency(amount, income.currency, account.currency);
+      }
+      account.balance -= amount;
+    }
+  }
+  
+  incomes.splice(index, 1);
+};
+
 module.exports = {
   initializeData,
   getAccounts,
   getExpenses,
+  getIncomes,
   addAccount,
   addExpense,
+  addIncome,
   updateAccount,
   updateExpense,
+  updateIncome,
   deleteAccount,
   deleteExpense,
+  deleteIncome,
   getMonthlySummary,
   generateExcel,
   convertCurrency,

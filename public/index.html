@@ -362,14 +362,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      position: fixed; /* Volver a fixed para asegurar que esté visible */
-      bottom: 80px;
-      right: 20px;
-      z-index: 1000;
+      position: fixed; 
+      bottom: 76px; /* Ajustado ligeramente por encima del menú inferior */
+      right: 16px;
+      z-index: 9999; /* Valor más alto para estar por encima de todo */
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       border: none;
       cursor: pointer;
       transition: transform 0.2s, background-color 0.3s;
+      font-size: 24px; /* Agregar tamaño de fuente para el ícono */
     }
 
     /* Mejoras visuales al botón */
