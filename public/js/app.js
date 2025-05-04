@@ -6,6 +6,10 @@
  * Funciona en Android, iOS y navegadores web
  */
 
+// Constantes de categorías y tipos
+const CATEGORIES = ['Alimentación', 'Vivienda', 'Transporte', 'Entretenimiento', 'Salud', 'Educación', 'Ropa', 'Servicios', 'Otros'];
+const INCOME_TYPES = ['Salario', 'Freelance', 'Inversiones', 'Regalo', 'Reembolso', 'Otro'];
+
 // Estado global de la aplicación
 const state = {
   currentView: 'dashboard',
@@ -29,27 +33,7 @@ const state = {
   }
 };
 
-// Constantes de la aplicación
-const CATEGORIES = [
-  'Alimentación',
-  'Vivienda',
-  'Transporte',
-  'Servicios',
-  'Salud',
-  'Entretenimiento',
-  'Educación',
-  'Otros'
-];
 
-// Tipos de ingreso
-const INCOME_TYPES = [
-  'Salario',
-  'Freelance',
-  'Inversiones',
-  'Regalo',
-  'Reembolso',
-  'Otro'
-];
 
 // Inicialización de la aplicación
 document.addEventListener('DOMContentLoaded', async () => {
@@ -379,53 +363,117 @@ function renderDashboardView() {
   }, 100);
 }
 
-// Vista de Gastos
+// Vista de Gastos y Ingresos
 function renderExpensesView() {
   const viewContainer = document.getElementById('view-container');
   
   viewContainer.innerHTML = `
     <div class="card">
-      <div class="card-title">Filtros</div>
-      
-      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <select id="month-filter" class="form-control">
-          ${generateMonthOptions()}
-        </select>
-        
-        <select id="year-filter" class="form-control">
-          ${generateYearOptions()}
-        </select>
-        
-        <select id="currency-filter" class="form-control">
-          <option value="all">Todas las monedas</option>
-          <option value="COP">Solo COP</option>
-          <option value="USD">Solo USD</option>
-        </select>
-        
-        <button id="apply-filter" class="btn btn-primary">Aplicar</button>
+      <div class="transaction-tabs">
+        <button class="tab-btn active" id="expenses-main-tab">Gastos</button>
+        <button class="tab-btn" id="incomes-main-tab">Ingresos</button>
       </div>
       
-      <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
-        <button class="btn" data-filter="all">Todos</button>
-        <button class="btn" data-filter="category-Alimentación">Alimentación</button>
-        <button class="btn" data-filter="category-Vivienda">Vivienda</button>
-        <button class="btn" data-filter="category-Transporte">Transporte</button>
-        <button class="btn" data-filter="category-Servicios">Servicios</button>
-        <button class="btn" data-filter="category-Otros">Otros</button>
+      <div id="expenses-content">
+        <div class="card-title">Filtros</div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <select id="month-filter" class="form-control">
+            ${generateMonthOptions()}
+          </select>
+          
+          <select id="year-filter" class="form-control">
+            ${generateYearOptions()}
+          </select>
+          
+          <select id="currency-filter" class="form-control">
+            <option value="all">Todas las monedas</option>
+            <option value="COP">Solo COP</option>
+            <option value="USD">Solo USD</option>
+          </select>
+          
+          <button id="apply-filter" class="btn btn-primary">Aplicar</button>
+        </div>
+        
+        <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
+          <button class="btn" data-filter="all">Todos</button>
+          <button class="btn" data-filter="category-Alimentación">Alimentación</button>
+          <button class="btn" data-filter="category-Vivienda">Vivienda</button>
+          <button class="btn" data-filter="category-Transporte">Transporte</button>
+          <button class="btn" data-filter="category-Servicios">Servicios</button>
+          <button class="btn" data-filter="category-Otros">Otros</button>
+        </div>
+      
+        <div class="card-title">Listado de Gastos</div>
+        <div class="list-container" id="expenses-list">
+          ${state.expenses.length === 0 ? 
+            '<div class="text-center my-4">No hay gastos registrados</div>' : 
+            renderExpensesListItems(state.expenses)}
+        </div>
       </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-title">Listado de Gastos</div>
-      <div class="list-container" id="expenses-list">
-        ${state.expenses.length === 0 ? 
-          '<div class="text-center my-4">No hay gastos registrados</div>' : 
-          renderExpensesListItems(state.expenses)}
+      
+      <div id="incomes-content" style="display: none;">
+        <div class="card-title">Filtros</div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <select id="income-month-filter" class="form-control">
+            ${generateMonthOptions()}
+          </select>
+          
+          <select id="income-year-filter" class="form-control">
+            ${generateYearOptions()}
+          </select>
+          
+          <select id="income-currency-filter" class="form-control">
+            <option value="all">Todas las monedas</option>
+            <option value="COP">Solo COP</option>
+            <option value="USD">Solo USD</option>
+          </select>
+          
+          <button id="apply-income-filter" class="btn btn-primary">Aplicar</button>
+        </div>
+        
+        <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;">
+          <button class="btn" data-income-filter="all">Todos</button>
+          <button class="btn" data-income-filter="type-Salario">Salario</button>
+          <button class="btn" data-income-filter="type-Freelance">Freelance</button>
+          <button class="btn" data-income-filter="type-Inversiones">Inversiones</button>
+          <button class="btn" data-income-filter="type-Regalo">Regalo</button>
+          <button class="btn" data-income-filter="type-Reembolso">Reembolso</button>
+          <button class="btn" data-income-filter="type-Otro">Otro</button>
+        </div>
+      
+        <div class="card-title">Listado de Ingresos</div>
+        <div class="list-container" id="incomes-list">
+          ${state.incomes.length === 0 ? 
+            '<div class="text-center my-4">No hay ingresos registrados</div>' : 
+            renderIncomesListItems(state.incomes)}
+        </div>
       </div>
     </div>
   `;
   
-  // Configurar eventos de filtro
+  // Configurar tabs de gastos e ingresos
+  const expensesMainTab = document.getElementById('expenses-main-tab');
+  const incomesMainTab = document.getElementById('incomes-main-tab');
+  const expensesContent = document.getElementById('expenses-content');
+  const incomesContent = document.getElementById('incomes-content');
+  
+  expensesMainTab.addEventListener('click', () => {
+    expensesMainTab.classList.add('active');
+    incomesMainTab.classList.remove('active');
+    expensesContent.style.display = 'block';
+    incomesContent.style.display = 'none';
+  });
+  
+  incomesMainTab.addEventListener('click', () => {
+    incomesMainTab.classList.add('active');
+    expensesMainTab.classList.remove('active');
+    incomesContent.style.display = 'block';
+    expensesContent.style.display = 'none';
+  });
+  
+  // Configurar eventos de filtro para gastos
   document.getElementById('apply-filter').addEventListener('click', () => {
     const month = document.getElementById('month-filter').value;
     const year = document.getElementById('year-filter').value;
@@ -442,11 +490,30 @@ function renderExpensesView() {
     });
   });
   
-  // Preseleccionar el mes y año actual
+  // Configurar eventos de filtro para ingresos
+  document.getElementById('apply-income-filter').addEventListener('click', () => {
+    const month = document.getElementById('income-month-filter').value;
+    const year = document.getElementById('income-year-filter').value;
+    const currency = document.getElementById('income-currency-filter').value;
+    
+    state.currentMonth = parseInt(month);
+    state.currentYear = parseInt(year);
+    
+    fetchIncomes(null, currency).then(() => {
+      document.getElementById('incomes-list').innerHTML = 
+        state.incomes.length === 0 ? 
+        '<div class="text-center my-4">No hay ingresos para el período seleccionado</div>' : 
+        renderIncomesListItems(state.incomes);
+    });
+  });
+  
+  // Preseleccionar el mes y año actual para gastos e ingresos
   document.getElementById('month-filter').value = state.currentMonth;
   document.getElementById('year-filter').value = state.currentYear;
+  document.getElementById('income-month-filter').value = state.currentMonth;
+  document.getElementById('income-year-filter').value = state.currentYear;
   
-  // Configurar botones de filtro de categoría
+  // Configurar botones de filtro de categoría para gastos
   document.querySelectorAll('button[data-filter]').forEach(button => {
     button.addEventListener('click', async () => {
       const filter = button.dataset.filter;
@@ -470,6 +537,33 @@ function renderExpensesView() {
         state.expenses.length === 0 ? 
         '<div class="text-center my-4">No hay gastos para el filtro seleccionado</div>' : 
         renderExpensesListItems(state.expenses);
+    });
+  });
+  
+  // Configurar botones de filtro de tipo para ingresos
+  document.querySelectorAll('button[data-income-filter]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const filter = button.dataset.incomeFilter;
+      
+      // Aplicar estilos de selección
+      document.querySelectorAll('button[data-income-filter]').forEach(btn => {
+        btn.classList.remove('btn-primary');
+      });
+      button.classList.add('btn-primary');
+      
+      const currency = document.getElementById('income-currency-filter').value;
+      
+      if (filter === 'all') {
+        await fetchIncomes(null, currency);
+      } else if (filter.startsWith('type-')) {
+        const type = filter.replace('type-', '');
+        await fetchIncomes(type, currency);
+      }
+      
+      document.getElementById('incomes-list').innerHTML = 
+        state.incomes.length === 0 ? 
+        '<div class="text-center my-4">No hay ingresos para el filtro seleccionado</div>' : 
+        renderIncomesListItems(state.incomes);
     });
   });
 }
