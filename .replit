@@ -25,7 +25,8 @@ args = "node server.js"
 waitForPort = 5000
 
 [deployment]
-run = ["sh", "-c", "npm install express cors body-parser path react react-dom chart.js xlsx && npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init -p && node server.js"]
+run = ["sh", "-c", "node server.js"]
+build = ["sh", "-c", "npm install"]
 
 [[ports]]
 localPort = 5000
