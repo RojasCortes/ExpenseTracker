@@ -308,6 +308,47 @@
       cursor: pointer;
     }
     
+    /* Income Item */
+    .income-item {
+      cursor: pointer;
+    }
+    
+    /* Tab Styles */
+    .transaction-tabs {
+      display: flex;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      color: #666;
+      position: relative;
+      transition: color 0.3s;
+    }
+    
+    .tab-btn.active {
+      color: var(--primary-color);
+    }
+    
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: var(--primary-color);
+    }
+    
+    .tab-btn:hover {
+      color: var(--primary-color);
+    }
+    
     /* Chart Container */
     .chart-container {
       width: 100%;
