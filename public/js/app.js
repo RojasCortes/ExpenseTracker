@@ -800,7 +800,7 @@ function renderAccountsView() {
         Mis Cuentas
         <span style="float: right;">
           <button class="add-button-pretty" id="accounts-view-add-btn">
-            <i class="fas fa-plus-circle mr-1"></i> Agregar cuenta
+            <i class="fas fa-plus mr-1"></i> Agregar
           </button>
         </span>
       </div>
@@ -808,7 +808,7 @@ function renderAccountsView() {
       ${state.accounts.length === 0 ? 
         `<div class="text-center my-4">No hay cuentas registradas.</div>
          <button class="section-add-btn" id="add-first-account-btn">
-           <i class="fas fa-plus mr-2"></i> Agregar mi primera cuenta
+           <i class="fas fa-plus mr-2"></i> Agregar cuenta
          </button>` : 
         state.accounts.map(account => `
           <div class="card mb-3">
@@ -974,7 +974,7 @@ function renderReportsView() {
           </div>
         </div>
         <button class="btn btn-primary add-button" id="add-expense-btn">
-          <i class="fas fa-plus mr-2"></i> Agregar Gasto
+          <i class="fas fa-plus mr-2"></i> Agregar
         </button>
       </div>
       
@@ -999,7 +999,7 @@ function renderReportsView() {
           </div>
         </div>
         <button class="btn btn-success add-button" id="add-income-btn">
-          <i class="fas fa-plus mr-2"></i> Agregar Ingreso
+          <i class="fas fa-plus mr-2"></i> Agregar
         </button>
       </div>
       
