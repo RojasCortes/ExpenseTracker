@@ -73,6 +73,11 @@ function renderApp() {
       
       <main class="main-content">
         <div id="view-container"></div>
+        
+        <!-- Posicionando el botón dentro del contenedor main -->
+        <button id="add-button" class="fab">
+          <i class="fas fa-plus"></i>
+        </button>
       </main>
       
       <nav class="bottom-nav">
@@ -96,10 +101,6 @@ function renderApp() {
       
       <div id="modal-container"></div>
     </div>
-    
-    <button id="add-button" class="fab">
-      <i class="fas fa-plus"></i>
-    </button>
   `;
   
   // Cargar Font Awesome para los íconos
@@ -219,28 +220,25 @@ function renderDashboardView() {
     }
   };
   
-  // Obtener total de balances en la moneda seleccionada
-  let totalBalance = 0;
+  // Obtener total de balances separado por moneda
+  let totalBalanceCOP = 0;
+  let totalBalanceUSD = 0;
+  
   state.accounts.forEach(account => {
-    let accountBalance = account.balance;
-    if (account.currency !== state.selectedCurrency) {
-      if (state.selectedCurrency === 'USD') {
-        // COP a USD usando tasa actualizada
-        accountBalance = accountBalance * state.exchangeRate.COP_TO_USD;
-      } else {
-        // USD a COP usando tasa actualizada
-        accountBalance = accountBalance * state.exchangeRate.USD_TO_COP;
-      }
+    if (account.currency === 'COP') {
+      totalBalanceCOP += account.balance;
+    } else if (account.currency === 'USD') {
+      totalBalanceUSD += account.balance;
     }
-    totalBalance += accountBalance;
   });
   
-  // Calcular el total de gastos en la moneda seleccionada
-  let totalExpenses = state.summary.totalExpenses;
-  if (state.selectedCurrency === 'USD') {
-    // Convertir de COP a USD usando tasa actualizada
-    totalExpenses = totalExpenses * state.exchangeRate.COP_TO_USD;
-  }
+  // Seleccionar el balance en la moneda correcta
+  const totalBalance = state.selectedCurrency === 'USD' ? totalBalanceUSD : totalBalanceCOP;
+  
+  // Usar el total de gastos correcto según la moneda seleccionada
+  let totalExpenses = state.selectedCurrency === 'USD' ?
+    state.summary?.totalExpensesUSD || 0 :
+    state.summary?.totalExpenses || 0;
   
   // Construir el HTML
   viewContainer.innerHTML = `
@@ -248,8 +246,8 @@ function renderDashboardView() {
       <div class="balance-title">Balance Total</div>
       <div class="balance-amount">
         ${state.selectedCurrency === 'USD' ? 
-          `$${totalBalance.toFixed(2)} USD` : 
-          `$${Math.round(totalBalance).toLocaleString('es-CO')} COP`
+          formatMoney(totalBalance, 'USD') : 
+          formatMoney(totalBalance, 'COP')
         }
       </div>
       
@@ -262,7 +260,7 @@ function renderDashboardView() {
     <div class="stats-container">
       <div class="stat-card">
         <i class="fas fa-money-bill-wave" style="color: var(--danger-color)"></i>
-        <div class="stat-value">${formatAmount(totalExpenses)}</div>
+        <div class="stat-value">${formatMoney(totalExpenses, state.selectedCurrency)}</div>
         <div class="stat-label">Gastos Mes</div>
       </div>
       

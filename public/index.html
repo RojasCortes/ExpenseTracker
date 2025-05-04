@@ -359,10 +359,10 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      position: fixed;
+      position: absolute; /* Cambio a absoluto en lugar de fixed */
       bottom: 80px;
       right: 20px;
       left: auto;
@@ -371,9 +371,6 @@
       border: none;
       cursor: pointer;
       transition: transform 0.2s;
-      /* Asegurar que el botón está siempre visible */
-      margin-bottom: 10px;
-      transform: translateZ(0);
     }
     
     .fab:active {
