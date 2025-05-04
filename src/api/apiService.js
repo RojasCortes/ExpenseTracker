@@ -286,11 +286,15 @@ const convertCurrency = (amount, fromCurrency, toCurrency) => {
 
 const formatCurrency = (amount, currency) => {
   if (currency === 'USD') {
-    return `$${amount.toFixed(2)}`;
+    return `$${amount.toFixed(2)} USD`;
   }
   
   if (currency === 'COP') {
-    return `$${Math.round(amount).toLocaleString('es-CO')}`;
+    // Usar toLocaleString con opciones específicas para evitar problemas con números grandes
+    return `$${Math.round(amount).toLocaleString('es-CO', {
+      maximumFractionDigits: 0, 
+      useGrouping: true
+    })} COP`;
   }
   
   return `${amount}`;

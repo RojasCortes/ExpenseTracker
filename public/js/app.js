@@ -1359,9 +1359,23 @@ function updateUI() {
 // Formatear moneda
 function formatMoney(amount, currency, simplified = false) {
   if (currency === 'USD') {
-    return simplified ? `$${amount.toFixed(0)}` : `$${amount.toFixed(2)}`;
+    return simplified ? `$${amount.toFixed(0)} USD` : `$${amount.toFixed(2)} USD`;
   } else {
-    return simplified ? `$${Math.round(amount / 1000)}k` : `$${Math.round(amount).toLocaleString('es-CO')}`;
+    // Para la versión simplificada (gráficos)
+    if (simplified) {
+      if (amount >= 1000000) {
+        return `$${(amount / 1000000).toFixed(1)}M COP`;
+      } else if (amount >= 1000) {
+        return `$${(amount / 1000).toFixed(0)}k COP`;
+      } else {
+        return `$${Math.round(amount)} COP`;
+      }
+    }
+    // Versión completa con formato adecuado para números grandes
+    return `$${Math.round(amount).toLocaleString('es-CO', {
+      maximumFractionDigits: 0,
+      useGrouping: true
+    })} COP`;
   }
 }
 
