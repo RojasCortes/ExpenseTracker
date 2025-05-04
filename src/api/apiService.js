@@ -49,87 +49,17 @@ const generateId = () => Math.random().toString(36).substring(2, 15);
 
 // Función para inicializar datos de ejemplo
 const initializeData = () => {
-  // Cuentas de ejemplo
-  accounts = [
-    {
-      id: 'acc1',
-      name: 'Cuenta Corriente',
-      balance: 2500000,
-      currency: 'COP',
-      description: 'Cuenta principal para gastos diarios',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'acc2',
-      name: 'Ahorros',
-      balance: 5000000,
-      currency: 'COP',
-      description: 'Cuenta de ahorros a largo plazo',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'acc3',
-      name: 'Inversiones',
-      balance: 2000,
-      currency: 'USD',
-      description: 'Cuenta para inversiones en dólares',
-      createdAt: new Date().toISOString()
-    }
-  ];
-
-  // Gastos de ejemplo
-  const categories = ['Alimentación', 'Vivienda', 'Transporte', 'Servicios', 'Salud', 'Entretenimiento', 'Educación'];
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
-
+  // Iniciar con datos limpios
+  accounts = [];
   expenses = [];
   incomes = [];
-
-  // Tipos de ingresos
-  const incomeTypes = ['Salario', 'Freelance', 'Inversiones', 'Regalo', 'Reembolso', 'Otro'];
-
-  // Crear algunos gastos para el mes actual
-  for (let i = 1; i <= 20; i++) {
-    const day = Math.min(i, 28);
-    const date = new Date(currentYear, currentMonth - 1, day);
-    
-    const category = categories[i % categories.length];
-    const account = accounts[i % accounts.length];
-    const amount = (i + 1) * 50000;
-    
-    expenses.push({
-      id: `exp${i}`,
-      amount,
-      currency: account.currency,
-      date: date.toISOString(),
-      category,
-      description: `Gasto de prueba ${i}`,
-      accountId: account.id,
-      createdAt: new Date().toISOString()
-    });
-  }
   
-  // Crear algunos ingresos para el mes actual
-  for (let i = 1; i <= 5; i++) {
-    const day = Math.min(i * 5, 28); // Distribuir los ingresos a lo largo del mes
-    const date = new Date(currentYear, currentMonth - 1, day);
-    
-    const type = incomeTypes[i % incomeTypes.length];
-    const account = accounts[i % accounts.length];
-    const amount = (i + 1) * 500000; // Ingresos más altos que gastos
-    
-    incomes.push({
-      id: `inc${i}`,
-      amount,
-      currency: account.currency,
-      date: date.toISOString(),
-      type,
-      description: `Ingreso de prueba ${i}`,
-      accountId: account.id,
-      createdAt: new Date().toISOString()
-    });
-  }
+  // Establecer la tasa de cambio actualizada
+  // 1 USD = 4,234.19 COP (Mayo 2025)
+  EXCHANGE_RATES.USD_TO_COP = 4234.19;
+  EXCHANGE_RATES.COP_TO_USD = 1 / 4234.19;
+  
+  console.log('Aplicación iniciada con datos limpios');
 };
 
 // Funciones para manipulación de cuentas

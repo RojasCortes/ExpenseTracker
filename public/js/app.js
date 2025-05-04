@@ -63,33 +63,52 @@ function renderApp() {
     <style>
       /* Estilos para botones bonitos */
       .add-button-pretty {
-        background-color: var(--primary-color);
+        background-color: #007bff;
         color: white;
         border: none;
-        border-radius: 20px;
-        padding: 8px 16px;
+        border-radius: 30px;
+        padding: 10px 20px;
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       
       .add-button-pretty:hover {
-        background-color: #0056b3;
+        background-color: #0069d9;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
       }
       
       .add-button-pretty.green {
-        background-color: var(--success-color);
+        background-color: #28a745;
       }
       
       .add-button-pretty.green:hover {
         background-color: #218838;
+      }
+      
+      .tab-btn {
+        border: none;
+        background: transparent;
+        padding: 10px 15px;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6c757d;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+      
+      .tab-btn.active {
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+        font-weight: 600;
       }
       
       .section-add-btn {
