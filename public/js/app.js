@@ -131,7 +131,10 @@ function setupEventListeners() {
     // Botones para agregar cuentas
     if (e.target.id === 'add-account-dashboard-btn' || 
         e.target.closest('#add-account-dashboard-btn') ||
-        e.target.id === 'add-account-empty-btn') {
+        e.target.id === 'add-account-empty-btn' ||
+        e.target.id === 'accounts-view-add-btn' ||
+        e.target.closest('#accounts-view-add-btn') ||
+        e.target.id === 'add-first-account-btn') {
       showAddAccountModal();
     }
     
@@ -139,13 +142,17 @@ function setupEventListeners() {
     if (e.target.id === 'add-expense-dashboard-btn' || 
         e.target.closest('#add-expense-dashboard-btn') ||
         e.target.id === 'add-expense-empty-btn' ||
-        e.target.id === 'add-expense-btn') {
+        e.target.id === 'add-expense-btn' ||
+        e.target.id === 'expenses-view-add-btn' ||
+        e.target.closest('#expenses-view-add-btn')) {
       showAddExpenseModal();
     }
     
     // Botones para agregar ingresos
     if (e.target.id === 'add-income-btn' ||
-        e.target.id === 'add-income-empty-btn') {
+        e.target.id === 'add-income-empty-btn' ||
+        e.target.id === 'add-income-dashboard-btn' ||
+        e.target.closest('#add-income-dashboard-btn')) {
       showAddIncomeModal();
     }
     
@@ -347,9 +354,6 @@ function renderDashboardView() {
     <div class="card">
       <div class="card-title">
         Mis Cuentas
-        <button class="btn-edit-account" id="add-account-dashboard-btn" style="float: right; background: none; border: none; cursor: pointer;">
-          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
-        </button>
       </div>
       <div class="list-container">
         ${state.accounts.length === 0 ? 
@@ -372,11 +376,6 @@ function renderDashboardView() {
     <div class="card">
       <div class="card-title">
         Transacciones Recientes
-        <span id="transaction-add-btn-container" style="float: right;">
-          <button class="btn-edit-account" id="add-expense-dashboard-btn" style="background: none; border: none; cursor: pointer;">
-            <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
-          </button>
-        </span>
       </div>
       <div class="transaction-tabs">
         <button class="tab-btn active" id="expenses-tab">Gastos</button>
@@ -640,11 +639,7 @@ function renderAccountsView() {
   
   // Formateo de datos para la moneda correcta
   const formatAmount = (amount, currency) => {
-    if (currency === 'USD') {
-      return `$${amount.toFixed(2)} USD`;
-    } else {
-      return `$${Math.round(amount).toLocaleString('es-CO')} COP`;
-    }
+    return formatMoney(amount, currency);
   };
   
   // Obtener total de balances para todas las cuentas
@@ -1835,9 +1830,13 @@ async function fetchSummary() {
     
     const summaryData = await response.json();
     
-    // Calcular el total real considerando ambas monedas
+    // Calcular el total real considerando ambas monedas para gastos
     let totalExpensesCOP = 0;
     let totalExpensesUSD = 0;
+    
+    // Calcular el total real considerando ambas monedas para ingresos
+    let totalIncomesCOP = 0;
+    let totalIncomesUSD = 0;
     
     // Obtenemos todos los gastos del mes
     const expensesResponse = await fetch(`/api/expenses?month=${state.currentMonth}&year=${state.currentYear}`);
@@ -1856,9 +1855,31 @@ async function fetchSummary() {
       });
     }
     
-    // Actualizamos el resumen con los nuevos valores
+    // Obtenemos todos los ingresos del mes
+    const incomesResponse = await fetch(`/api/incomes?month=${state.currentMonth}&year=${state.currentYear}`);
+    if (incomesResponse.ok) {
+      const incomes = await incomesResponse.json();
+      
+      // Calculamos los totales en cada moneda para ingresos
+      incomes.forEach(income => {
+        if (income.currency === 'COP') {
+          totalIncomesCOP += income.amount;
+        } else if (income.currency === 'USD') {
+          totalIncomesUSD += income.amount;
+          // También sumamos el equivalente en COP
+          totalIncomesCOP += income.amount * state.exchangeRate.USD_TO_COP;
+        }
+      });
+    }
+    
+    // Actualizamos el resumen con los nuevos valores para gastos
     summaryData.totalExpenses = totalExpensesCOP;
     summaryData.totalExpensesUSD = totalExpensesUSD;
+    
+    // Actualizamos el resumen con los nuevos valores para ingresos
+    summaryData.totalIncomes = totalIncomesCOP;
+    summaryData.totalIncomesUSD = totalIncomesUSD;
+    summaryData.incomeCount = state.incomes.length;
     
     state.summary = summaryData;
   } catch (error) {
