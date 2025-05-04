@@ -609,6 +609,14 @@ function renderDashboardView() {
 function renderExpensesView() {
   const viewContainer = document.getElementById('view-container');
   
+  // Asegurarse que la barra de navegación esté visible
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.style.display = 'flex';
+    bottomNav.style.position = 'fixed';
+  }
+  
+  // Agregar espacio adicional al final del contenido para evitar que el contenido quede bajo la navegación
   viewContainer.innerHTML = `
     <div class="card">
       <div class="transaction-tabs">
@@ -653,7 +661,7 @@ function renderExpensesView() {
         </div>
       
         <div class="card-title">Listado de Gastos</div>
-        <div class="list-container" id="expenses-list">
+        <div class="list-container" id="expenses-list" style="margin-bottom: 30px;">
           ${state.expenses.length === 0 ? 
             '<div class="text-center my-4">No hay gastos registrados</div>' : 
             renderExpensesListItems(state.expenses)}
@@ -692,7 +700,7 @@ function renderExpensesView() {
         </div>
       
         <div class="card-title">Listado de Ingresos</div>
-        <div class="list-container" id="incomes-list">
+        <div class="list-container" id="incomes-list" style="margin-bottom: 30px;">
           ${state.incomes.length === 0 ? 
             '<div class="text-center my-4">No hay ingresos registrados</div>' : 
             renderIncomesListItems(state.incomes)}
@@ -841,6 +849,13 @@ function renderExpensesView() {
 function renderAccountsView() {
   const viewContainer = document.getElementById('view-container');
   
+  // Asegurarse que la barra de navegación esté visible
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.style.display = 'flex';
+    bottomNav.style.position = 'fixed';
+  }
+  
   // Formateo de datos para la moneda correcta
   const formatAmount = (amount, currency) => {
     return formatMoney(amount, currency);
@@ -947,6 +962,13 @@ function renderAccountsView() {
 // Vista de Informes
 function renderReportsView() {
   const viewContainer = document.getElementById('view-container');
+  
+  // Asegurarse que la barra de navegación esté visible
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.style.display = 'flex';
+    bottomNav.style.position = 'fixed';
+  }
   
   const currentDate = new Date();
   const currentMonth = state.currentMonth;
