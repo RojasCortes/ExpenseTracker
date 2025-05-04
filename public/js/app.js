@@ -700,17 +700,33 @@ function renderReportsView() {
   
   viewContainer.innerHTML = `
     <div class="card">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <button id="prev-month" class="btn">
+      <div class="month-selector">
+        <button id="prev-month" class="month-nav-btn">
           <i class="fas fa-chevron-left"></i>
         </button>
         
-        <div style="text-align: center;">
-          <div style="font-size: 20px; font-weight: bold;">${monthName}</div>
-          <div>${currentYear}</div>
+        <div class="month-display">
+          <div class="month-name">${monthName}</div>
+          <div class="year-display">${currentYear}</div>
+          
+          <div class="month-dropdown" style="display: none;">
+            <div class="month-grid">
+              ${monthNames.map((name, index) => `
+                <div class="month-item ${(index + 1) === currentMonth ? 'active' : ''}" data-month="${index + 1}">
+                  ${name.substring(0, 3)}
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="year-selector">
+              <button id="prev-year" class="year-nav-btn"><i class="fas fa-chevron-left"></i></button>
+              <span id="year-display">${currentYear}</span>
+              <button id="next-year" class="year-nav-btn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+          </div>
         </div>
         
-        <button id="next-month" class="btn">
+        <button id="next-month" class="month-nav-btn">
           <i class="fas fa-chevron-right"></i>
         </button>
       </div>
@@ -808,6 +824,51 @@ function renderReportsView() {
     
     await fetchSummary();
     renderReportsView();
+  });
+  
+  // Configurar el selector de mes dropdown
+  const monthDisplay = document.querySelector('.month-display');
+  const monthDropdown = document.querySelector('.month-dropdown');
+  
+  // Mostrar dropdown al hacer clic en el mes
+  monthDisplay.addEventListener('click', () => {
+    monthDropdown.style.display = monthDropdown.style.display === 'none' ? 'block' : 'none';
+  });
+  
+  // Configurar selección de mes en el grid
+  document.querySelectorAll('.month-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const month = parseInt(item.dataset.month);
+      if (month !== state.currentMonth) {
+        state.currentMonth = month;
+        await fetchSummary();
+        renderReportsView();
+      } else {
+        monthDropdown.style.display = 'none';
+      }
+    });
+  });
+  
+  // Configurar botones de navegación del año
+  document.getElementById('prev-year').addEventListener('click', async () => {
+    state.currentYear--;
+    document.getElementById('year-display').textContent = state.currentYear;
+    // No cerramos el dropdown para permitir seleccionar un mes del año anterior
+  });
+  
+  document.getElementById('next-year').addEventListener('click', async () => {
+    state.currentYear++;
+    document.getElementById('year-display').textContent = state.currentYear;
+    // No cerramos el dropdown para permitir seleccionar un mes del año siguiente
+  });
+  
+  // Cerrar dropdown cuando se hace clic fuera de él
+  document.addEventListener('click', (e) => {
+    if (monthDropdown.style.display === 'block' && 
+        !monthDisplay.contains(e.target) && 
+        !monthDropdown.contains(e.target)) {
+      monthDropdown.style.display = 'none';
+    }
   });
   
   // Configurar evento para actualizar tasa de cambio
