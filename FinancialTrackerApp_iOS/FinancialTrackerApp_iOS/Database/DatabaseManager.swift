@@ -2,471 +2,229 @@ import Foundation
 import CoreData
 
 class DatabaseManager {
-    
     static let shared = DatabaseManager()
     
-    // MARK: - Core Data stack
+    // In-memory storage for development
+    private var accounts: [Account] = []
+    private var expenses: [Expense] = []
     
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "FinancialTrackerDataModel")
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
-            if let error = error as NSError? {
-                fatalError("Error al inicializar CoreData: \(error), \(error.userInfo)")
-            }
-        })
-        return container
-    }()
-    
-    lazy var viewContext: NSManagedObjectContext = {
-        return persistentContainer.viewContext
-    }()
-    
-    // MARK: - Core Data Saving support
-    
-    func saveContext() {
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-            } catch {
-                let error = error as NSError
-                print("Error al guardar los datos: \(error), \(error.userInfo)")
-            }
-        }
+    private init() {
+        // Add some sample data for testing
+        setupSampleData()
     }
     
-    // MARK: - Database setup and initialization
+    // MARK: - Account CRUD operations
     
-    func setupDatabase() {
-        createDataModelIfNeeded()
-        
-        // Check if we need to add sample data
-        let fetchRequest: NSFetchRequest<Account> = Account.fetchRequest()
-        
-        do {
-            let count = try viewContext.count(for: fetchRequest)
-            if count == 0 {
-                createSampleData()
-            }
-        } catch {
-            print("Error verificando datos existentes: \(error)")
-        }
-    }
-    
-    private func createDataModelIfNeeded() {
-        let modelURL = Bundle.main.url(forResource: "FinancialTrackerDataModel", withExtension: "momd")
-        if modelURL == nil {
-            // Create data model programmatically if .xcdatamodeld file doesn't exist
-            
-            guard let modelDescription = NSManagedObjectModel.mergedModel(from: [Bundle.main]) else {
-                fatalError("No se pudo crear el modelo de datos")
-            }
-            
-            // Define Account entity
-            let accountEntity = NSEntityDescription()
-            accountEntity.name = "Account"
-            accountEntity.managedObjectClassName = "Account"
-            
-            let accountIdAttribute = NSAttributeDescription()
-            accountIdAttribute.name = "id"
-            accountIdAttribute.attributeType = .integer64AttributeType
-            accountIdAttribute.isOptional = false
-            
-            let accountNameAttribute = NSAttributeDescription()
-            accountNameAttribute.name = "name"
-            accountNameAttribute.attributeType = .stringAttributeType
-            accountNameAttribute.isOptional = false
-            
-            let accountBalanceAttribute = NSAttributeDescription()
-            accountBalanceAttribute.name = "balance"
-            accountBalanceAttribute.attributeType = .doubleAttributeType
-            accountBalanceAttribute.isOptional = false
-            
-            let accountCurrencyAttribute = NSAttributeDescription()
-            accountCurrencyAttribute.name = "currency"
-            accountCurrencyAttribute.attributeType = .stringAttributeType
-            accountCurrencyAttribute.isOptional = false
-            
-            let accountCreatedAtAttribute = NSAttributeDescription()
-            accountCreatedAtAttribute.name = "createdAt"
-            accountCreatedAtAttribute.attributeType = .dateAttributeType
-            accountCreatedAtAttribute.isOptional = false
-            
-            accountEntity.properties = [
-                accountIdAttribute,
-                accountNameAttribute,
-                accountBalanceAttribute,
-                accountCurrencyAttribute,
-                accountCreatedAtAttribute
-            ]
-            
-            // Define Expense entity
-            let expenseEntity = NSEntityDescription()
-            expenseEntity.name = "Expense"
-            expenseEntity.managedObjectClassName = "Expense"
-            
-            let expenseIdAttribute = NSAttributeDescription()
-            expenseIdAttribute.name = "id"
-            expenseIdAttribute.attributeType = .integer64AttributeType
-            expenseIdAttribute.isOptional = false
-            
-            let expenseAmountAttribute = NSAttributeDescription()
-            expenseAmountAttribute.name = "amount"
-            expenseAmountAttribute.attributeType = .doubleAttributeType
-            expenseAmountAttribute.isOptional = false
-            
-            let expenseCurrencyAttribute = NSAttributeDescription()
-            expenseCurrencyAttribute.name = "currency"
-            expenseCurrencyAttribute.attributeType = .stringAttributeType
-            expenseCurrencyAttribute.isOptional = false
-            
-            let expenseDateAttribute = NSAttributeDescription()
-            expenseDateAttribute.name = "date"
-            expenseDateAttribute.attributeType = .dateAttributeType
-            expenseDateAttribute.isOptional = false
-            
-            let expenseCategoryAttribute = NSAttributeDescription()
-            expenseCategoryAttribute.name = "category"
-            expenseCategoryAttribute.attributeType = .stringAttributeType
-            expenseCategoryAttribute.isOptional = false
-            
-            let expenseDescriptionAttribute = NSAttributeDescription()
-            expenseDescriptionAttribute.name = "expenseDescription"
-            expenseDescriptionAttribute.attributeType = .stringAttributeType
-            expenseDescriptionAttribute.isOptional = true
-            
-            let expenseCreatedAtAttribute = NSAttributeDescription()
-            expenseCreatedAtAttribute.name = "createdAt"
-            expenseCreatedAtAttribute.attributeType = .dateAttributeType
-            expenseCreatedAtAttribute.isOptional = false
-            
-            // Define relationship between Account and Expense
-            let accountToExpenses = NSRelationshipDescription()
-            accountToExpenses.name = "expenses"
-            accountToExpenses.destinationEntity = expenseEntity
-            accountToExpenses.minCount = 0
-            accountToExpenses.maxCount = 0 // many
-            accountToExpenses.deleteRule = .cascadeDeleteRule
-            
-            let expenseToAccount = NSRelationshipDescription()
-            expenseToAccount.name = "account"
-            expenseToAccount.destinationEntity = accountEntity
-            expenseToAccount.minCount = 1
-            expenseToAccount.maxCount = 1
-            expenseToAccount.deleteRule = .nullifyDeleteRule
-            
-            accountToExpenses.inverseRelationship = expenseToAccount
-            expenseToAccount.inverseRelationship = accountToExpenses
-            
-            accountEntity.properties.append(accountToExpenses)
-            
-            expenseEntity.properties = [
-                expenseIdAttribute,
-                expenseAmountAttribute,
-                expenseCurrencyAttribute,
-                expenseDateAttribute,
-                expenseCategoryAttribute,
-                expenseDescriptionAttribute,
-                expenseCreatedAtAttribute,
-                expenseToAccount
-            ]
-            
-            // Set entities in model
-            modelDescription.entities = [accountEntity, expenseEntity]
-            
-            // Ensure model is installed
-            persistentContainer.managedObjectModel = modelDescription
-        }
-    }
-    
-    private func createSampleData() {
-        // Create sample accounts
-        let account1 = Account(context: viewContext)
-        account1.id = 1
-        account1.name = "Cuenta de Ahorros"
-        account1.balance = 2500000
-        account1.currency = "COP"
-        account1.createdAt = Date()
-        
-        let account2 = Account(context: viewContext)
-        account2.id = 2
-        account2.name = "Cuenta Corriente"
-        account2.balance = 1200000
-        account2.currency = "COP"
-        account2.createdAt = Date()
-        
-        let account3 = Account(context: viewContext)
-        account3.id = 3
-        account3.name = "Inversiones"
-        account3.balance = 500
-        account3.currency = "USD"
-        account3.createdAt = Date()
-        
-        // Create sample expenses
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        let expense1 = Expense(context: viewContext)
-        expense1.id = 1
-        expense1.amount = 150000
-        expense1.currency = "COP"
-        expense1.date = dateFormatter.date(from: "2023-05-01") ?? Date()
-        expense1.category = "Alimentación"
-        expense1.expenseDescription = "Compras semanales"
-        expense1.createdAt = Date()
-        expense1.account = account1
-        
-        let expense2 = Expense(context: viewContext)
-        expense2.id = 2
-        expense2.amount = 250000
-        expense2.currency = "COP"
-        expense2.date = dateFormatter.date(from: "2023-05-02") ?? Date()
-        expense2.category = "Vivienda"
-        expense2.expenseDescription = "Pago de arriendo"
-        expense2.createdAt = Date()
-        expense2.account = account2
-        
-        let expense3 = Expense(context: viewContext)
-        expense3.id = 3
-        expense3.amount = 100
-        expense3.currency = "USD"
-        expense3.date = dateFormatter.date(from: "2023-05-03") ?? Date()
-        expense3.category = "Entretenimiento"
-        expense3.expenseDescription = "Suscripciones"
-        expense3.createdAt = Date()
-        expense3.account = account3
-        
-        saveContext()
-    }
-    
-    // MARK: - Account operations
-    
-    func fetchAllAccounts() -> [Account] {
-        let fetchRequest: NSFetchRequest<Account> = Account.fetchRequest()
-        
-        do {
-            return try viewContext.fetch(fetchRequest)
-        } catch {
-            print("Error fetching accounts: \(error)")
-            return []
-        }
-    }
-    
-    func createAccount(name: String, initialBalance: Double, currency: String) -> Account {
-        let account = Account(context: viewContext)
-        
-        // Get highest ID
-        let fetchRequest: NSFetchRequest<Account> = Account.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
-        
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            let nextId = results.first?.id ?? 0
-            account.id = nextId + 1
-        } catch {
-            account.id = 1
-        }
-        
-        account.name = name
-        account.balance = initialBalance
-        account.currency = currency
-        account.createdAt = Date()
-        
-        saveContext()
+    func createAccount(name: String, balance: Double, currency: String, description: String? = nil) -> Account {
+        let account = Account(name: name, balance: balance, currency: currency, description: description)
+        accounts.append(account)
         return account
     }
     
-    func updateAccount(account: Account, name: String? = nil, balance: Double? = nil, currency: String? = nil) {
-        if let name = name {
-            account.name = name
-        }
-        
-        if let balance = balance {
-            account.balance = balance
-        }
-        
-        if let currency = currency {
-            account.currency = currency
-        }
-        
-        saveContext()
+    func fetchAllAccounts() -> [Account] {
+        return accounts
+    }
+    
+    func fetchAccount(byId id: UUID) -> Account? {
+        return accounts.first { $0.id == id }
+    }
+    
+    func updateAccount(account: Account, name: String, balance: Double, currency: String, description: String?) {
+        account.name = name
+        account.balance = balance
+        account.currency = currency
+        account.description = description
     }
     
     func deleteAccount(account: Account) throws {
         // Check if account has expenses
-        let expenses = account.expenses?.allObjects as? [Expense] ?? []
-        
-        if !expenses.isEmpty {
-            throw NSError(domain: "com.financialtracker", code: 400, userInfo: [
-                NSLocalizedDescriptionKey: "No se puede eliminar una cuenta con gastos. Elimine los gastos primero."
+        let accountExpenses = expenses.filter { $0.account?.id == account.id }
+        if !accountExpenses.isEmpty {
+            throw NSError(domain: "FinancialTrackerErrorDomain", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "No se puede eliminar una cuenta con gastos asociados"
             ])
         }
         
-        viewContext.delete(account)
-        saveContext()
+        accounts.removeAll { $0.id == account.id }
     }
     
-    // MARK: - Expense operations
+    // MARK: - Expense CRUD operations
+    
+    func createExpense(amount: Double, currency: String, date: Date, category: String, description: String? = nil, account: Account? = nil) -> Expense {
+        let expense = Expense(amount: amount, currency: currency, date: date, category: category, description: description, account: account)
+        
+        // Update account balance if provided
+        if let account = account {
+            // Convert expense amount to account currency if needed
+            let expenseAmount = expense.convertedAmount(to: account.currency)
+            account.updateBalance(-expenseAmount)
+        }
+        
+        expenses.append(expense)
+        return expense
+    }
     
     func fetchExpenses(forMonth month: Int? = nil, year: Int? = nil, category: String? = nil, account: Account? = nil) -> [Expense] {
-        let fetchRequest: NSFetchRequest<Expense> = Expense.fetchRequest()
+        var filteredExpenses = expenses
         
-        var predicates: [NSPredicate] = []
-        
+        // Filter by date if month and year provided
         if let month = month, let year = year {
             let calendar = Calendar.current
-            let startDateComponents = DateComponents(year: year, month: month, day: 1)
-            let endDateComponents = DateComponents(year: year, month: month + 1, day: 1)
-            
-            guard let startDate = calendar.date(from: startDateComponents),
-                  let endDate = calendar.date(from: endDateComponents) else {
-                return []
+            filteredExpenses = filteredExpenses.filter { expense in
+                let expenseMonth = calendar.component(.month, from: expense.date)
+                let expenseYear = calendar.component(.year, from: expense.date)
+                return expenseMonth == month && expenseYear == year
             }
-            
-            let datePredicate = NSPredicate(format: "date >= %@ AND date < %@", startDate as NSDate, endDate as NSDate)
-            predicates.append(datePredicate)
         }
         
+        // Filter by category if provided
         if let category = category {
-            let categoryPredicate = NSPredicate(format: "category == %@", category)
-            predicates.append(categoryPredicate)
+            filteredExpenses = filteredExpenses.filter { $0.category == category }
         }
         
+        // Filter by account if provided
         if let account = account {
-            let accountPredicate = NSPredicate(format: "account == %@", account)
-            predicates.append(accountPredicate)
+            filteredExpenses = filteredExpenses.filter { $0.account?.id == account.id }
         }
         
-        if !predicates.isEmpty {
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        }
-        
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-        
-        do {
-            return try viewContext.fetch(fetchRequest)
-        } catch {
-            print("Error fetching expenses: \(error)")
-            return []
-        }
+        // Sort by date (newest first)
+        return filteredExpenses.sorted { $0.date > $1.date }
     }
     
-    func createExpense(amount: Double, currency: String, date: Date, category: String, description: String?, account: Account) -> Expense {
-        let expense = Expense(context: viewContext)
-        
-        // Get highest ID
-        let fetchRequest: NSFetchRequest<Expense> = Expense.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
-        
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            let nextId = results.first?.id ?? 0
-            expense.id = nextId + 1
-        } catch {
-            expense.id = 1
+    func fetchExpense(byId id: UUID) -> Expense? {
+        return expenses.first { $0.id == id }
+    }
+    
+    func updateExpense(expense: Expense, amount: Double, currency: String, date: Date, category: String, description: String?, account: Account?) {
+        // If account is changing, update balances
+        if expense.account != account {
+            // Revert effect on old account
+            if let oldAccount = expense.account {
+                let oldAmount = expense.convertedAmount(to: oldAccount.currency)
+                oldAccount.updateBalance(oldAmount)
+            }
+            
+            // Apply effect to new account
+            if let newAccount = account {
+                let newAmount = CurrencyManager.shared.convertAmount(amount, from: currency, to: newAccount.currency)
+                newAccount.updateBalance(-newAmount)
+            }
+        } else if let existingAccount = expense.account {
+            // Account is the same but amount might have changed
+            let oldAmount = expense.convertedAmount(to: existingAccount.currency)
+            let newAmount = CurrencyManager.shared.convertAmount(amount, from: currency, to: existingAccount.currency)
+            existingAccount.updateBalance(oldAmount - newAmount)
         }
         
+        // Update expense properties
         expense.amount = amount
         expense.currency = currency
         expense.date = date
         expense.category = category
         expense.expenseDescription = description
-        expense.createdAt = Date()
         expense.account = account
-        
-        // Update account balance
-        account.balance -= amount
-        
-        saveContext()
-        return expense
-    }
-    
-    func updateExpense(expense: Expense, amount: Double? = nil, currency: String? = nil, date: Date? = nil, category: String? = nil, description: String? = nil, account: Account? = nil) {
-        // Restore old account balance if amount changes or account changes
-        if let oldAmount = expense.amount, let oldAccount = expense.account, (amount != nil || account != nil) {
-            oldAccount.balance += oldAmount
-        }
-        
-        if let amount = amount {
-            expense.amount = amount
-        }
-        
-        if let currency = currency {
-            expense.currency = currency
-        }
-        
-        if let date = date {
-            expense.date = date
-        }
-        
-        if let category = category {
-            expense.category = category
-        }
-        
-        if let description = description {
-            expense.expenseDescription = description
-        }
-        
-        if let account = account {
-            expense.account = account
-        }
-        
-        // Update new account balance
-        if let account = expense.account, let amount = expense.amount {
-            account.balance -= amount
-        }
-        
-        saveContext()
     }
     
     func deleteExpense(expense: Expense) {
-        // Restore account balance
-        if let account = expense.account, let amount = expense.amount {
-            account.balance += amount
+        // Revert effect on account
+        if let account = expense.account {
+            let amount = expense.convertedAmount(to: account.currency)
+            account.updateBalance(amount)
         }
         
-        viewContext.delete(expense)
-        saveContext()
+        expenses.removeAll { $0.id == expense.id }
     }
     
-    // MARK: - Summary operations
+    // MARK: - Reporting and summaries
     
-    func getMonthlySummary(month: Int, year: Int) -> (totalExpenses: Double, expensesByCategory: [String: Double], expenseCount: Int) {
-        let expenses = fetchExpenses(forMonth: month, year: year)
+    func getMonthlySummary(month: Int, year: Int) -> MonthlyFinancialSummary {
+        let monthlyExpenses = fetchExpenses(forMonth: month, year: year)
         
-        let totalExpenses = expenses.reduce(0) { $0 + $1.amount }
+        let totalExpenses = monthlyExpenses.reduce(0) { total, expense in
+            let selectedCurrency = CurrencyManager.shared.selectedCurrency
+            return total + expense.convertedAmount(to: selectedCurrency)
+        }
         
+        // Group expenses by category
         var expensesByCategory: [String: Double] = [:]
-        
-        for expense in expenses {
-            let category = expense.category ?? "Sin categoría"
-            if let existingAmount = expensesByCategory[category] {
-                expensesByCategory[category] = existingAmount + expense.amount
+        for expense in monthlyExpenses {
+            let selectedCurrency = CurrencyManager.shared.selectedCurrency
+            let amount = expense.convertedAmount(to: selectedCurrency)
+            
+            if let existingAmount = expensesByCategory[expense.category] {
+                expensesByCategory[expense.category] = existingAmount + amount
             } else {
-                expensesByCategory[category] = expense.amount
+                expensesByCategory[expense.category] = amount
             }
         }
         
-        return (totalExpenses, expensesByCategory, expenses.count)
+        // Group expenses by day
+        var expensesByDay: [Int: Double] = [:]
+        let calendar = Calendar.current
+        
+        for expense in monthlyExpenses {
+            let day = calendar.component(.day, from: expense.date)
+            let selectedCurrency = CurrencyManager.shared.selectedCurrency
+            let amount = expense.convertedAmount(to: selectedCurrency)
+            
+            if let existingAmount = expensesByDay[day] {
+                expensesByDay[day] = existingAmount + amount
+            } else {
+                expensesByDay[day] = amount
+            }
+        }
+        
+        return MonthlyFinancialSummary(
+            totalExpenses: totalExpenses,
+            expenseCount: monthlyExpenses.count,
+            expensesByCategory: expensesByCategory,
+            expensesByDay: expensesByDay
+        )
     }
     
-    // MARK: - Currency conversion
+    // MARK: - Currency conversion helper
     
     func convertCurrency(amount: Double, fromCurrency: String, toCurrency: String) -> Double {
-        // Simple exchange rate: 1 USD = 4000 COP
-        let usdToCopRate: Double = 4000
+        return CurrencyManager.shared.convertAmount(amount, from: fromCurrency, to: toCurrency)
+    }
+    
+    // MARK: - Sample Data (for development)
+    
+    private func setupSampleData() {
+        // Create some sample accounts
+        let account1 = createAccount(name: "Cuenta Corriente", balance: 2500000, currency: "COP")
+        let account2 = createAccount(name: "Ahorros", balance: 5000000, currency: "COP")
+        let account3 = createAccount(name: "Inversiones", balance: 2000, currency: "USD")
         
-        if fromCurrency == toCurrency {
-            return amount
+        // Create some sample expenses
+        let currentDate = Date()
+        let calendar = Calendar.current
+        let currentMonth = calendar.component(.month, from: currentDate)
+        let currentYear = calendar.component(.year, from: currentDate)
+        
+        let categories = ["Alimentación", "Vivienda", "Transporte", "Servicios", "Salud", "Entretenimiento", "Educación"]
+        
+        // Create expenses for the current month
+        for i in 1...20 {
+            let day = min(i, 28)
+            var dateComponents = DateComponents()
+            dateComponents.year = currentYear
+            dateComponents.month = currentMonth
+            dateComponents.day = day
+            
+            let date = calendar.date(from: dateComponents) ?? currentDate
+            let category = categories[i % categories.count]
+            let account = [account1, account2, account3][i % 3]
+            let amount = Double((i + 1) * 50000) // Some random amount
+            
+            _ = createExpense(
+                amount: amount,
+                currency: account.currency,
+                date: date,
+                category: category,
+                description: "Gasto de prueba \(i)",
+                account: account
+            )
         }
-        
-        if fromCurrency == "USD" && toCurrency == "COP" {
-            return amount * usdToCopRate
-        } else if fromCurrency == "COP" && toCurrency == "USD" {
-            return amount / usdToCopRate
-        }
-        
-        return amount
     }
 }

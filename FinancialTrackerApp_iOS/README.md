@@ -9,7 +9,7 @@ Una aplicación iOS nativa para el seguimiento de gastos, administración de cue
 - **Administración de Cuentas**: Crear y administrar múltiples cuentas con diferentes monedas.
 - **Informes**: Visualización de gastos por categoría y día, con opción para generar reportes Excel.
 - **Soporte para múltiples monedas**: Manejo de COP (Peso Colombiano) y USD (Dólar Estadounidense).
-- **Almacenamiento local**: Utiliza CoreData para almacenar toda la información en el dispositivo.
+- **Almacenamiento local**: La app guarda toda la información en el dispositivo.
 
 ## Estructura del Proyecto
 
@@ -29,53 +29,66 @@ FinancialTrackerApp_iOS/
 │   ├── AccountsViewController.swift
 │   └── ReportsViewController.swift
 ├── Database/                      # Capa de acceso a datos
-│   └── DatabaseManager.swift      # Gestión de CoreData
-└── Resources/                     # Recursos adicionales
+│   └── DatabaseManager.swift      # Gestión de la base de datos
+└── Utils/                         # Utilidades adicionales
+    └── ExcelGenerator.swift       # Generación de reportes Excel
 ```
 
-## Guía de Implementación
+## Guía de Instalación y Uso
 
-### Requisitos
+### Instalación en iPhone (requiere Mac con Xcode)
 
-- Xcode 13.0+
-- iOS 15.0+
-- Swift 5.5+
-
-### Instalación
-
-1. Clona el repositorio
+1. Clona el repositorio a tu Mac
 2. Abre el proyecto en Xcode
-3. Compila y ejecuta en un simulador o dispositivo iOS
+3. Conecta tu iPhone mediante un cable USB
+4. Selecciona tu iPhone como dispositivo de ejecución
+5. Presiona el botón "Play" para compilar e instalar
 
-### Modelo de Datos
+### Uso de Funcionalidades Principales
 
-La aplicación utiliza CoreData para la persistencia de datos con dos entidades principales:
+#### Agregar Nuevo Gasto
+1. En la pestaña "Gastos", toca el botón flotante (+) en la parte inferior derecha
+2. Completa el formulario con:
+   - Monto del gasto
+   - Moneda (COP o USD)
+   - Fecha
+   - Categoría (selecciona entre las opciones predefinidas)
+   - Descripción (opcional)
+   - Cuenta asociada
+3. Toca "Guardar Gasto" para registrarlo
 
-- **Account**: Representa una cuenta financiera con saldo y moneda.
-- **Expense**: Representa un gasto asociado a una cuenta específica.
+#### Crear Nueva Cuenta
+1. En la pestaña "Cuentas", toca el botón flotante (+) en la parte inferior derecha
+2. Completa el formulario con:
+   - Nombre de la cuenta
+   - Tipo de cuenta (Corriente, Ahorros, etc.)
+   - Saldo inicial
+   - Moneda (COP o USD)
+   - Descripción (opcional)
+3. Toca "Guardar Cuenta" para crearla
 
-### Flujo de Navegación
+#### Descargar Reporte Excel
+1. Ve a la pestaña "Informes"
+2. Selecciona el mes y año que deseas analizar usando los botones de navegación
+3. Toca el botón "Generar Reporte Excel" en la parte inferior
+4. El sistema generará un archivo y mostrará opciones para guardarlo o compartirlo
 
-1. **Dashboard**: Pantalla principal con resumen de finanzas
-2. **Gastos**: Lista de gastos con filtros y opciones para agregar/editar
-3. **Cuentas**: Administración de cuentas financieras
-4. **Informes**: Visualización de informes y análisis financieros
+#### Visualizar Gráficos en el Dashboard
+1. Ve a la pestaña "Dashboard"
+2. Observa el gráfico circular que muestra la distribución de gastos por categoría
+3. Puedes cambiar la moneda con el selector en la parte superior para ver los valores convertidos automáticamente
+4. El dashboard muestra un resumen actualizado en tiempo real de tus balances y gastos
 
-### Conversión de Monedas
+### Solución de Problemas
 
-La aplicación soporta COP (Peso Colombiano) y USD (Dólar Estadounidense) con conversión automática entre ambas monedas utilizando una tasa de cambio fija (1 USD = 4000 COP).
+Si no tienes acceso a un Mac con Xcode, considera alternativas como:
+- Usar servicios de CI/CD como Codemagic o Bitrise para compilar la app
+- Explorar TestFlight para la distribución beta (requiere cuenta de desarrollador)
+- Solicitar ayuda a un desarrollador iOS para la compilación e instalación
 
-## Desarrollo Futuro
+## Información Adicional
 
-Características planeadas para futuras versiones:
-
-- Sincronización con la nube
-- Categorías de gastos personalizables
-- Presupuestos y metas financieras
-- Notificaciones y recordatorios
-- Importación de transacciones desde bancos
-- Soporte para más monedas
-- Gráficos y análisis avanzados
+La versión actual de la aplicación usa almacenamiento en memoria para demostración, pero en una versión de producción usaría CoreData para persistencia de datos.
 
 ## Soporte
 

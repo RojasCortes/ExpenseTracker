@@ -6,20 +6,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Initialize database
-        DatabaseManager.shared.setupDatabase()
         
+        // Create window
         window = UIWindow(frame: UIScreen.main.bounds)
         
-        let mainViewController = MainTabBarController()
-        window?.rootViewController = mainViewController
+        // Set up main tab bar controller as root
+        let mainTabBarController = MainTabBarController()
+        window?.rootViewController = mainTabBarController
         window?.makeKeyAndVisible()
         
         return true
-    }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-        // Save any unsaved data
-        DatabaseManager.shared.saveContext()
     }
 }
