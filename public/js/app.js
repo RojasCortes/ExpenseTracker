@@ -539,7 +539,7 @@ function renderExpensesView() {
         <span style="flex-grow: 1;"></span>
         <div id="expenses-view-button-container">
           <button class="add-button-pretty" id="expenses-view-add-btn">
-            <i class="fas fa-plus-circle mr-1"></i> Agregar gasto
+            <i class="fas fa-plus mr-1"></i> Agregar
           </button>
         </div>
       </div>
@@ -639,7 +639,7 @@ function renderExpensesView() {
     // Cambiar el botón para agregar gastos
     buttonContainer.innerHTML = `
       <button class="add-button-pretty" id="expenses-view-add-btn">
-        <i class="fas fa-plus-circle mr-1"></i> Agregar gasto
+        <i class="fas fa-plus mr-1"></i> Agregar
       </button>
     `;
     
@@ -656,7 +656,7 @@ function renderExpensesView() {
     // Cambiar el botón para agregar ingresos
     buttonContainer.innerHTML = `
       <button class="add-button-pretty green" id="incomes-view-add-btn">
-        <i class="fas fa-plus-circle mr-1"></i> Agregar ingreso
+        <i class="fas fa-plus mr-1"></i> Agregar
       </button>
     `;
     
