@@ -60,6 +60,59 @@ function renderApp() {
   const appEl = document.getElementById('app');
   
   appEl.innerHTML = `
+    <style>
+      /* Estilos para botones bonitos */
+      .add-button-pretty {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .add-button-pretty:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      
+      .add-button-pretty.green {
+        background-color: var(--success-color);
+      }
+      
+      .add-button-pretty.green:hover {
+        background-color: #218838;
+      }
+      
+      .section-add-btn {
+        background-color: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 12px;
+        width: 100%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .section-add-btn:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+        color: #495057;
+      }
+    </style>
     <div class="app-container">
       <nav class="navbar">
         <div class="navbar-title">Financial Tracker</div>
@@ -367,9 +420,17 @@ function renderDashboardView() {
     </div>
     
     <div class="card">
-      <div class="card-title">Gastos por Categoría</div>
-      <div class="chart-container">
+      <div class="card-title">
+        <div class="transaction-tabs" style="margin: -10px 0;">
+          <button class="tab-btn active" id="expenses-chart-tab">Gastos por Categoría</button>
+          <button class="tab-btn" id="incomes-chart-tab">Ingresos por Tipo</button>
+        </div>
+      </div>
+      <div class="chart-container" id="expense-chart-container">
         <canvas id="categories-chart"></canvas>
+      </div>
+      <div class="chart-container" id="income-chart-container" style="display: none;">
+        <canvas id="income-types-chart"></canvas>
       </div>
     </div>
     
@@ -398,8 +459,31 @@ function renderDashboardView() {
   // Inicializar gráficos después de que el DOM esté actualizado
   setTimeout(() => {
     renderCategoriesChart();
+    renderIncomeTypesChart();
     
-    // Configurar eventos para cambiar entre gastos e ingresos
+    // Configurar eventos para cambiar entre gráficos de gastos e ingresos
+    const expensesChartTab = document.getElementById('expenses-chart-tab');
+    const incomesChartTab = document.getElementById('incomes-chart-tab');
+    const expenseChartContainer = document.getElementById('expense-chart-container');
+    const incomeChartContainer = document.getElementById('income-chart-container');
+    
+    if (expensesChartTab && incomesChartTab) {
+      expensesChartTab.addEventListener('click', () => {
+        expensesChartTab.classList.add('active');
+        incomesChartTab.classList.remove('active');
+        expenseChartContainer.style.display = 'block';
+        incomeChartContainer.style.display = 'none';
+      });
+      
+      incomesChartTab.addEventListener('click', () => {
+        incomesChartTab.classList.add('active');
+        expensesChartTab.classList.remove('active');
+        incomeChartContainer.style.display = 'block';
+        expenseChartContainer.style.display = 'none';
+      });
+    }
+    
+    // Configurar eventos para cambiar entre gastos e ingresos en transacciones
     const expensesTab = document.getElementById('expenses-tab');
     const incomesTab = document.getElementById('incomes-tab');
     const transactionsList = document.getElementById('transactions-list');
@@ -434,9 +518,11 @@ function renderExpensesView() {
         <button class="tab-btn active" id="expenses-main-tab">Gastos</button>
         <button class="tab-btn" id="incomes-main-tab">Ingresos</button>
         <span style="flex-grow: 1;"></span>
-        <button class="btn-edit-account" id="expenses-view-add-btn" style="margin-right: 10px;">
-          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
-        </button>
+        <div id="expenses-view-button-container">
+          <button class="add-button-pretty" id="expenses-view-add-btn">
+            <i class="fas fa-plus-circle mr-1"></i> Agregar gasto
+          </button>
+        </div>
       </div>
       
       <div id="expenses-content">
@@ -523,12 +609,23 @@ function renderExpensesView() {
   const incomesMainTab = document.getElementById('incomes-main-tab');
   const expensesContent = document.getElementById('expenses-content');
   const incomesContent = document.getElementById('incomes-content');
+  const buttonContainer = document.getElementById('expenses-view-button-container');
   
   expensesMainTab.addEventListener('click', () => {
     expensesMainTab.classList.add('active');
     incomesMainTab.classList.remove('active');
     expensesContent.style.display = 'block';
     incomesContent.style.display = 'none';
+    
+    // Cambiar el botón para agregar gastos
+    buttonContainer.innerHTML = `
+      <button class="add-button-pretty" id="expenses-view-add-btn">
+        <i class="fas fa-plus-circle mr-1"></i> Agregar gasto
+      </button>
+    `;
+    
+    // Asignar el evento
+    document.getElementById('expenses-view-add-btn').addEventListener('click', showAddExpenseModal);
   });
   
   incomesMainTab.addEventListener('click', () => {
@@ -536,6 +633,16 @@ function renderExpensesView() {
     expensesMainTab.classList.remove('active');
     incomesContent.style.display = 'block';
     expensesContent.style.display = 'none';
+    
+    // Cambiar el botón para agregar ingresos
+    buttonContainer.innerHTML = `
+      <button class="add-button-pretty green" id="incomes-view-add-btn">
+        <i class="fas fa-plus-circle mr-1"></i> Agregar ingreso
+      </button>
+    `;
+    
+    // Asignar el evento
+    document.getElementById('incomes-view-add-btn').addEventListener('click', showAddIncomeModal);
   });
   
   // Configurar eventos de filtro para gastos
@@ -672,9 +779,11 @@ function renderAccountsView() {
     <div class="card">
       <div class="card-title">
         Mis Cuentas
-        <button class="btn-edit-account" id="accounts-view-add-btn" style="float: right; background: none; border: none; cursor: pointer;">
-          <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
-        </button>
+        <span style="float: right;">
+          <button class="add-button-pretty" id="accounts-view-add-btn">
+            <i class="fas fa-plus-circle mr-1"></i> Agregar cuenta
+          </button>
+        </span>
       </div>
       
       ${state.accounts.length === 0 ? 
