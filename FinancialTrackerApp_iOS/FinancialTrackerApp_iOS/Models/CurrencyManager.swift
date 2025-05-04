@@ -1,62 +1,74 @@
 import Foundation
 
+extension NSNotification.Name {
+    static let currencyDidChange = NSNotification.Name("currencyDidChange")
+}
+
 class CurrencyManager {
     static let shared = CurrencyManager()
     
-    // Default currency
-    private var _selectedCurrency: String = "COP"
+    // Default exchange rates (1 USD = 4000 COP)
+    private let exchangeRates: [String: Double] = [
+        "COP_USD": 0.00025, // 1 COP = 0.00025 USD
+        "USD_COP": 4000     // 1 USD = 4000 COP
+    ]
     
+    // Default currency
     var selectedCurrency: String {
-        get {
-            return _selectedCurrency
-        }
-        set {
-            _selectedCurrency = newValue
-            // Notify observers that currency has changed
-            NotificationCenter.default.post(name: .currencyDidChange, object: nil)
+        didSet {
+            if oldValue != selectedCurrency {
+                // Save to user defaults
+                UserDefaults.standard.set(selectedCurrency, forKey: "SelectedCurrency")
+                
+                // Notify observers
+                NotificationCenter.default.post(name: .currencyDidChange, object: nil)
+            }
         }
     }
     
-    // Simple exchange rates
-    private let usdToCopRate: Double = 4000
+    private init() {
+        // Load from user defaults or use default
+        selectedCurrency = UserDefaults.standard.string(forKey: "SelectedCurrency") ?? "COP"
+    }
     
-    func convert(amount: Double, from sourceCurrency: String, to targetCurrency: String) -> Double {
-        if sourceCurrency == targetCurrency {
+    func convertAmount(_ amount: Double, from fromCurrency: String, to toCurrency: String) -> Double {
+        if fromCurrency == toCurrency {
             return amount
         }
         
-        if sourceCurrency == "USD" && targetCurrency == "COP" {
-            return amount * usdToCopRate
-        } else if sourceCurrency == "COP" && targetCurrency == "USD" {
-            return amount / usdToCopRate
+        let rateKey = "\(fromCurrency)_\(toCurrency)"
+        if let rate = exchangeRates[rateKey] {
+            return amount * rate
         }
         
+        // If direct conversion not found, try reverse
+        let reverseRateKey = "\(toCurrency)_\(fromCurrency)"
+        if let reverseRate = exchangeRates[reverseRateKey] {
+            return amount / reverseRate
+        }
+        
+        // If no conversion found, return original amount
         return amount
     }
     
-    func formatAmount(_ amount: Double, currency: String? = nil) -> String {
+    func formatAmount(_ amount: Double, currency: String? = nil, decimals: Int? = nil) -> String {
         let currencyToUse = currency ?? selectedCurrency
+        
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         
         if currencyToUse == "COP" {
-            formatter.locale = Locale(identifier: "es_CO")
-            formatter.maximumFractionDigits = 0
             formatter.currencySymbol = "$"
-            return formatter.string(from: NSNumber(value: amount)) ?? "$\(Int(amount))"
+            formatter.currencyCode = "COP"
+            formatter.minimumFractionDigits = decimals ?? 0
+            formatter.maximumFractionDigits = decimals ?? 0
         } else {
-            formatter.locale = Locale(identifier: "en_US")
-            formatter.maximumFractionDigits = 2
-            return formatter.string(from: NSNumber(value: amount)) ?? "$\(String(format: "%.2f", amount))"
+            formatter.currencySymbol = "USD $"
+            formatter.currencyCode = "USD"
+            formatter.minimumFractionDigits = decimals ?? 2
+            formatter.maximumFractionDigits = decimals ?? 2
         }
+        
+        return formatter.string(from: NSNumber(value: amount)) ?? "$0.00"
     }
-    
-    func getCurrencySymbol(for currency: String) -> String {
-        return currency == "COP" ? "$" : "$"  // Both use $ but with different formatting
-    }
-}
-
-// MARK: - Notification names
-extension Notification.Name {
-    static let currencyDidChange = Notification.Name("currencyDidChange")
 }

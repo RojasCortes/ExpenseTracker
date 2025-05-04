@@ -1,43 +1,37 @@
 import Foundation
-import CoreData
 
-@objc(Expense)
-class Expense: NSManagedObject {
-    @NSManaged var id: Int64
-    @NSManaged var amount: Double
-    @NSManaged var currency: String
-    @NSManaged var date: Date
-    @NSManaged var category: String
-    @NSManaged var expenseDescription: String?
-    @NSManaged var createdAt: Date
-    @NSManaged var account: Account?
+class Expense {
+    let id: UUID
+    var amount: Double
+    var currency: String
+    var date: Date
+    var category: String
+    var expenseDescription: String?
+    var account: Account?
     
-    static func fetchRequest() -> NSFetchRequest<Expense> {
-        return NSFetchRequest<Expense>(entityName: "Expense")
+    init(id: UUID = UUID(), amount: Double, currency: String, date: Date, category: String, description: String? = nil, account: Account? = nil) {
+        self.id = id
+        self.amount = amount
+        self.currency = currency
+        self.date = date
+        self.category = category
+        self.expenseDescription = description
+        self.account = account
     }
     
-    // Helper method to get formatted amount
     func formattedAmount() -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.maximumFractionDigits = currency == "COP" ? 0 : 2
-        
-        if currency == "COP" {
-            formatter.locale = Locale(identifier: "es_CO")
-            formatter.currencySymbol = "$"
-            return formatter.string(from: NSNumber(value: amount)) ?? "$\(Int(amount))"
-        } else {
-            formatter.locale = Locale(identifier: "en_US")
-            return formatter.string(from: NSNumber(value: amount)) ?? "$\(String(format: "%.2f", amount))"
-        }
+        return CurrencyManager.shared.formatAmount(amount, currency: currency)
     }
     
-    // Helper method to get formatted date
     func formattedDate() -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "es_CO")
-        return formatter.string(from: date)
+        return DateUtils.shared.formatDateForDisplay(date)
+    }
+    
+    func convertedAmount(to targetCurrency: String) -> Double {
+        if currency == targetCurrency {
+            return amount
+        }
+        
+        return CurrencyManager.shared.convertAmount(amount, from: currency, to: targetCurrency)
     }
 }

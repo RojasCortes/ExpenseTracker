@@ -3,87 +3,92 @@ import Foundation
 class DateUtils {
     static let shared = DateUtils()
     
-    private let dateFormatter = DateFormatter()
-    private let calendar = Calendar.current
+    private init() {}
     
-    // Format date for display (e.g., "12 de mayo de 2023")
     func formatDateForDisplay(_ date: Date) -> String {
-        dateFormatter.dateStyle = .long
-        dateFormatter.timeStyle = .none
-        dateFormatter.locale = Locale(identifier: "es_CO")
-        return dateFormatter.string(from: date)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "es_CO")
+        return formatter.string(from: date)
     }
     
-    // Format date for picker or form fields (e.g., "2023-05-12")
     func formatDateForInput(_ date: Date) -> String {
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        return dateFormatter.string(from: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
-    // Parse date from string
-    func parseDate(from string: String, format: String = "yyyy-MM-dd") -> Date? {
-        dateFormatter.dateFormat = format
-        return dateFormatter.date(from: string)
-    }
-    
-    // Get month and year from date
-    func getMonthAndYear(from date: Date) -> (month: Int, year: Int) {
-        let month = calendar.component(.month, from: date)
-        let year = calendar.component(.year, from: date)
-        return (month, year)
-    }
-    
-    // Get start and end date of a month
     func getMonthDateRange(month: Int, year: Int) -> (startDate: Date, endDate: Date)? {
-        var startDateComponents = DateComponents()
-        startDateComponents.year = year
-        startDateComponents.month = month
-        startDateComponents.day = 1
+        let calendar = Calendar.current
         
-        var endDateComponents = DateComponents()
-        endDateComponents.year = year
-        endDateComponents.month = month + 1
-        endDateComponents.day = 1
+        var startComponents = DateComponents()
+        startComponents.day = 1
+        startComponents.month = month
+        startComponents.year = year
         
-        guard let startDate = calendar.date(from: startDateComponents),
-              let endDate = calendar.date(from: endDateComponents) else {
+        guard let startDate = calendar.date(from: startComponents) else {
+            return nil
+        }
+        
+        guard let endDate = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startDate) else {
             return nil
         }
         
         return (startDate, endDate)
     }
     
-    // Get month name
+    func getMonthDays(month: Int, year: Int) -> [String] {
+        guard let (startDate, endDate) = getMonthDateRange(month: month, year: year) else {
+            return []
+        }
+        
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        
+        let components = calendar.dateComponents([.day], from: endDate)
+        guard let lastDay = components.day else {
+            return []
+        }
+        
+        var days: [String] = []
+        
+        for day in 1...lastDay {
+            var dayComponents = DateComponents()
+            dayComponents.day = day
+            dayComponents.month = month
+            dayComponents.year = year
+            
+            if let date = calendar.date(from: dayComponents) {
+                days.append(formatter.string(from: date))
+            }
+        }
+        
+        return days
+    }
+    
     func getMonthName(month: Int) -> String {
-        dateFormatter.dateFormat = "MMMM"
+        let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "es_CO")
         
         var components = DateComponents()
         components.month = month
-        components.day = 1
-        components.year = 2023 // Any year would work
         
-        if let date = calendar.date(from: components) {
-            let monthName = dateFormatter.string(from: date)
-            return monthName.capitalized
+        guard let date = Calendar.current.date(from: components) else {
+            return ""
         }
         
-        return ""
+        dateFormatter.dateFormat = "MMMM"
+        return dateFormatter.string(from: date)
     }
     
-    // Get all dates in a month
-    func getDatesInMonth(month: Int, year: Int) -> [Date] {
-        guard let dateRange = getMonthDateRange(month: month, year: year) else {
-            return []
-        }
+    func getCurrentMonthAndYear() -> (month: Int, year: Int) {
+        let calendar = Calendar.current
+        let currentDate = Date()
+        let month = calendar.component(.month, from: currentDate)
+        let year = calendar.component(.year, from: currentDate)
         
-        let startDate = dateRange.startDate
-        let range = calendar.range(of: .day, in: .month, for: startDate)!
-        
-        return range.compactMap { day -> Date? in
-            var components = calendar.dateComponents([.year, .month], from: startDate)
-            components.day = day
-            return calendar.date(from: components)
-        }
+        return (month, year)
     }
 }
