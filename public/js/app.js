@@ -594,7 +594,7 @@ function renderReportsView() {
           <div style="font-size: 24px; font-weight: bold; color: var(--danger-color);">
             ${
               state.selectedCurrency === 'USD'
-              ? formatMoney((state.summary?.totalExpenses || 0) * state.exchangeRate.COP_TO_USD, 'USD')
+              ? formatMoney(state.summary?.totalExpensesUSD || 0, 'USD')
               : formatMoney(state.summary?.totalExpenses || 0, 'COP')
             }
           </div>
@@ -1341,7 +1341,34 @@ async function fetchSummary() {
       throw new Error('Error al cargar resumen');
     }
     
-    state.summary = await response.json();
+    const summaryData = await response.json();
+    
+    // Calcular el total real considerando ambas monedas
+    let totalExpensesCOP = 0;
+    let totalExpensesUSD = 0;
+    
+    // Obtenemos todos los gastos del mes
+    const expensesResponse = await fetch(`/api/expenses?month=${state.currentMonth}&year=${state.currentYear}`);
+    if (expensesResponse.ok) {
+      const expenses = await expensesResponse.json();
+      
+      // Calculamos los totales en cada moneda
+      expenses.forEach(expense => {
+        if (expense.currency === 'COP') {
+          totalExpensesCOP += expense.amount;
+        } else if (expense.currency === 'USD') {
+          totalExpensesUSD += expense.amount;
+          // También sumamos el equivalente en COP
+          totalExpensesCOP += expense.amount * state.exchangeRate.USD_TO_COP;
+        }
+      });
+    }
+    
+    // Actualizamos el resumen con los nuevos valores
+    summaryData.totalExpenses = totalExpensesCOP;
+    summaryData.totalExpensesUSD = totalExpensesUSD;
+    
+    state.summary = summaryData;
   } catch (error) {
     console.error('Error fetching summary:', error);
   } finally {
