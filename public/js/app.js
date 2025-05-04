@@ -990,23 +990,38 @@ function renderReportsView() {
       </div>
     </div>
     
-    <div class="tab-container">
-      <div class="tab-buttons">
-        <button class="tab-button active" data-tab="chart-categories">Por Categoría</button>
-        <button class="tab-button" data-tab="chart-daily">Por Día</button>
+    <div class="card">
+      <div class="transaction-tabs">
+        <button class="tab-btn active" id="expense-chart-tab">Gastos</button>
+        <button class="tab-btn" id="income-chart-tab">Ingresos</button>
       </div>
       
-      <div class="tab-content">
-        <div id="chart-categories" class="tab-pane active">
-          <div class="chart-container">
-            <canvas id="categories-pie-chart"></canvas>
+      <div id="expense-chart-content">
+        <div class="tab-container">
+          <div class="tab-buttons">
+            <button class="tab-button active" data-tab="chart-categories">Por Categoría</button>
+            <button class="tab-button" data-tab="chart-daily">Por Día</button>
+          </div>
+          
+          <div class="tab-content">
+            <div id="chart-categories" class="tab-pane active">
+              <div class="chart-container">
+                <canvas id="categories-pie-chart"></canvas>
+              </div>
+            </div>
+            
+            <div id="chart-daily" class="tab-pane" style="display: none;">
+              <div class="chart-container">
+                <canvas id="daily-expenses-chart"></canvas>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div id="chart-daily" class="tab-pane" style="display: none;">
-          <div class="chart-container">
-            <canvas id="daily-expenses-chart"></canvas>
-          </div>
+      </div>
+      
+      <div id="income-chart-content" style="display: none;">
+        <div class="chart-container">
+          <canvas id="income-pie-chart"></canvas>
         </div>
       </div>
     </div>
@@ -1132,9 +1147,32 @@ function renderReportsView() {
     generateExcelReport();
   });
   
+  // Configurar tabs de gastos e ingresos
+  const expenseChartTab = document.getElementById('expense-chart-tab');
+  const incomeChartTab = document.getElementById('income-chart-tab');
+  const expenseChartContent = document.getElementById('expense-chart-content');
+  const incomeChartContent = document.getElementById('income-chart-content');
+  
+  if (expenseChartTab && incomeChartTab) {
+    expenseChartTab.addEventListener('click', () => {
+      expenseChartTab.classList.add('active');
+      incomeChartTab.classList.remove('active');
+      expenseChartContent.style.display = 'block';
+      incomeChartContent.style.display = 'none';
+    });
+    
+    incomeChartTab.addEventListener('click', () => {
+      incomeChartTab.classList.add('active');
+      expenseChartTab.classList.remove('active');
+      incomeChartContent.style.display = 'block';
+      expenseChartContent.style.display = 'none';
+    });
+  }
+  
   // Inicializar gráficos
   setTimeout(() => {
     renderCategoriesPieChart();
+    renderIncomesPieChart();
   }, 100);
 }
 
@@ -1686,6 +1724,79 @@ function renderCategoriesChart() {
   });
 }
 
+// Función para renderizar el gráfico de ingresos por tipo
+function renderIncomeTypesChart() {
+  const canvas = document.getElementById('income-types-chart');
+  if (!canvas) return;
+  
+  // Verificar si hay datos
+  if (!state.incomes || state.incomes.length === 0) {
+    canvas.parentNode.innerHTML = '<div class="text-center my-4">No hay datos de ingresos para mostrar</div>';
+    return;
+  }
+  
+  // Agrupar ingresos por tipo
+  const incomeByType = {};
+  
+  state.incomes.forEach(income => {
+    if (!incomeByType[income.type]) {
+      incomeByType[income.type] = 0;
+    }
+    
+    // Convertir a la moneda seleccionada si es necesario
+    let amount = income.amount;
+    if (income.currency !== state.selectedCurrency) {
+      if (state.selectedCurrency === 'USD' && income.currency === 'COP') {
+        amount = amount * state.exchangeRate.COP_TO_USD;
+      } else if (state.selectedCurrency === 'COP' && income.currency === 'USD') {
+        amount = amount * state.exchangeRate.USD_TO_COP;
+      }
+    }
+    
+    incomeByType[income.type] += amount;
+  });
+  
+  const types = Object.keys(incomeByType);
+  const amounts = Object.values(incomeByType);
+  const backgroundColors = types.map(type => getIncomeTypeColor(type));
+  
+  // Crear gráfico
+  const ctx = canvas.getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: types,
+      datasets: [{
+        data: amounts,
+        backgroundColor: backgroundColors,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 12,
+            padding: 15
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              return `${label}: ${formatMoney(value, state.selectedCurrency)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 // Gráfico de pastel para categorías (Informes)
 function renderCategoriesPieChart() {
   const canvas = document.getElementById('categories-pie-chart');
@@ -1742,6 +1853,86 @@ function renderCategoriesPieChart() {
               const label = context.label || '';
               const value = context.raw || 0;
               return `${label}: ${formatMoney(value, state.selectedCurrency)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Gráfico de ingresos por tipo para informes
+function renderIncomesPieChart() {
+  const canvas = document.getElementById('income-pie-chart');
+  if (!canvas) return;
+  
+  // Verificar si hay datos
+  if (!state.incomes || state.incomes.length === 0) {
+    canvas.parentNode.innerHTML = '<div class="text-center my-4">No hay datos de ingresos para mostrar</div>';
+    return;
+  }
+  
+  // Agrupar ingresos por tipo
+  const incomeByType = {};
+  let totalAmount = 0;
+  
+  state.incomes.forEach(income => {
+    if (!incomeByType[income.type]) {
+      incomeByType[income.type] = 0;
+    }
+    
+    // Convertir a la moneda seleccionada si es necesario
+    let amount = income.amount;
+    if (income.currency !== state.selectedCurrency) {
+      if (state.selectedCurrency === 'USD' && income.currency === 'COP') {
+        amount = amount * state.exchangeRate.COP_TO_USD;
+      } else if (state.selectedCurrency === 'COP' && income.currency === 'USD') {
+        amount = amount * state.exchangeRate.USD_TO_COP;
+      }
+    }
+    
+    incomeByType[income.type] += amount;
+    totalAmount += amount;
+  });
+  
+  const types = Object.keys(incomeByType);
+  const amounts = Object.values(incomeByType);
+  const backgroundColors = types.map(type => getIncomeTypeColor(type));
+  
+  // Crear gráfico
+  if (window.incomePieChart) {
+    window.incomePieChart.destroy();
+  }
+  
+  const ctx = canvas.getContext('2d');
+  window.incomePieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: types,
+      datasets: [{
+        data: amounts,
+        backgroundColor: backgroundColors,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 12,
+            padding: 15
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const percentage = Math.round((value / totalAmount) * 100);
+              return `${label}: ${formatMoney(value, state.selectedCurrency)} (${percentage}%)`;
             }
           }
         }
