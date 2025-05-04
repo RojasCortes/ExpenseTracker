@@ -73,12 +73,12 @@ function renderApp() {
       
       <main class="main-content">
         <div id="view-container"></div>
-        
-        <!-- Posicionando el botón dentro del contenedor main -->
-        <button id="add-button" class="fab">
-          <i class="fas fa-plus"></i>
-        </button>
       </main>
+      
+      <!-- Colocando el botón fuera del contenedor main para posicionamiento fijo -->
+      <button id="add-button" class="fab">
+        <i class="fas fa-plus"></i>
+      </button>
       
       <nav class="bottom-nav">
         <a href="#" class="nav-item" data-view="dashboard">

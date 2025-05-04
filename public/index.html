@@ -359,18 +359,30 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
-      position: absolute; /* Cambio a absoluto en lugar de fixed */
+      position: fixed; /* Volver a fixed para asegurar que esté visible */
       bottom: 80px;
       right: 20px;
-      left: auto;
       z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       border: none;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: transform 0.2s, background-color 0.3s;
+    }
+
+    /* Mejoras visuales al botón */
+    .fab:hover {
+      background-color: var(--primary-dark);
+    }
+
+    /* Para pantallas más pequeñas, ajustamos la posición */
+    @media (max-width: 768px) {
+      .fab {
+        bottom: 75px; /* Un poco más arriba del menú inferior */
+        right: 16px;
+      }
     }
     
     .fab:active {
