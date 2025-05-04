@@ -2186,16 +2186,55 @@ async function fetchAccounts() {
   try {
     state.loading = true;
     
-    const response = await fetch('/api/accounts');
-    if (!response.ok) {
-      throw new Error('Error al cargar cuentas');
-    }
+    // Primero intenta obtener las cuentas desde IndexedDB
+    const dbStorage = new IndexedDBStorage();
+    const localAccounts = await dbStorage.getAccounts();
     
-    state.accounts = await response.json();
+    if (localAccounts && localAccounts.length > 0) {
+      // Si existen cuentas almacenadas localmente, úsalas
+      state.accounts = localAccounts;
+      console.log('Cuentas cargadas desde almacenamiento local:', localAccounts.length);
+      
+      // Si estamos online, sincroniza con el servidor en segundo plano
+      if (state.isOnline) {
+        fetchAccountsFromServer(dbStorage);
+      }
+    } else if (state.isOnline) {
+      // Si no hay datos locales y estamos online, obtén del servidor
+      await fetchAccountsFromServer(dbStorage);
+    } else {
+      // Sin conexión y sin datos locales
+      state.accounts = [];
+      console.warn('Sin conexión y sin datos locales: no hay cuentas disponibles');
+    }
   } catch (error) {
     console.error('Error fetching accounts:', error);
+    state.accounts = [];
   } finally {
     state.loading = false;
+  }
+}
+
+// Función auxiliar para obtener cuentas desde el servidor
+async function fetchAccountsFromServer(dbStorage) {
+  try {
+    const response = await fetch('/api/accounts');
+    if (!response.ok) {
+      throw new Error('Error al cargar cuentas desde el servidor');
+    }
+    
+    const accountsData = await response.json();
+    state.accounts = accountsData;
+    
+    // Guardar en IndexedDB - actualizamos cada cuenta individualmente
+    for (const account of accountsData) {
+      await dbStorage.updateAccount(account);
+    }
+    
+    console.log('Cuentas actualizadas desde el servidor:', accountsData.length);
+  } catch (error) {
+    console.error('Error al obtener cuentas desde el servidor:', error);
+    throw error;
   }
 }
 
@@ -2204,6 +2243,56 @@ async function fetchExpenses(category = null, currency = null) {
   try {
     state.loading = true;
     
+    // Primero intenta obtener los gastos desde IndexedDB
+    const dbStorage = new IndexedDBStorage();
+    let localExpenses = await dbStorage.getExpenses();
+    
+    // Filtrar por fecha (mes y año)
+    const startDate = new Date(state.currentYear, state.currentMonth - 1, 1).toISOString();
+    const endDate = new Date(state.currentYear, state.currentMonth, 0).toISOString(); // Último día del mes
+    localExpenses = localExpenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= new Date(startDate) && expenseDate <= new Date(endDate);
+    });
+    
+    // Filtrar por categoría si se especifica
+    if (category) {
+      localExpenses = localExpenses.filter(expense => expense.category === category);
+    }
+    
+    // Filtrar por moneda si se especifica
+    if (currency && currency !== 'all') {
+      localExpenses = localExpenses.filter(expense => expense.currency === currency);
+    }
+    
+    if (localExpenses && localExpenses.length > 0) {
+      // Si existen gastos almacenados localmente, úsalos
+      state.expenses = localExpenses;
+      console.log('Gastos cargados desde almacenamiento local:', localExpenses.length);
+      
+      // Si estamos online, sincroniza con el servidor en segundo plano
+      if (state.isOnline) {
+        fetchExpensesFromServer(dbStorage, category, currency);
+      }
+    } else if (state.isOnline) {
+      // Si no hay datos locales y estamos online, obtén del servidor
+      await fetchExpensesFromServer(dbStorage, category, currency);
+    } else {
+      // Sin conexión y sin datos locales
+      state.expenses = [];
+      console.warn('Sin conexión y sin datos locales: no hay gastos disponibles');
+    }
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    state.expenses = [];
+  } finally {
+    state.loading = false;
+  }
+}
+
+// Función auxiliar para obtener gastos desde el servidor
+async function fetchExpensesFromServer(dbStorage, category = null, currency = null) {
+  try {
     let url = `/api/expenses?month=${state.currentMonth}&year=${state.currentYear}`;
     if (category) {
       url += `&category=${encodeURIComponent(category)}`;
@@ -2211,21 +2300,27 @@ async function fetchExpenses(category = null, currency = null) {
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Error al cargar gastos');
+      throw new Error('Error al cargar gastos desde el servidor');
     }
     
-    let expenses = await response.json();
+    let expensesData = await response.json();
     
     // Filtrar por moneda si se especifica
     if (currency && currency !== 'all') {
-      expenses = expenses.filter(expense => expense.currency === currency);
+      expensesData = expensesData.filter(expense => expense.currency === currency);
     }
     
-    state.expenses = expenses;
+    state.expenses = expensesData;
+    
+    // Guardar en IndexedDB - actualizamos cada gasto individualmente
+    for (const expense of expensesData) {
+      await dbStorage.updateExpense(expense);
+    }
+    
+    console.log('Gastos actualizados desde el servidor:', expensesData.length);
   } catch (error) {
-    console.error('Error fetching expenses:', error);
-  } finally {
-    state.loading = false;
+    console.error('Error al obtener gastos desde el servidor:', error);
+    throw error;
   }
 }
 
@@ -2234,6 +2329,56 @@ async function fetchIncomes(type = null, currency = null) {
   try {
     state.loading = true;
     
+    // Primero intenta obtener los ingresos desde IndexedDB
+    const dbStorage = new IndexedDBStorage();
+    let localIncomes = await dbStorage.getIncomes();
+    
+    // Filtrar por fecha (mes y año)
+    const startDate = new Date(state.currentYear, state.currentMonth - 1, 1).toISOString();
+    const endDate = new Date(state.currentYear, state.currentMonth, 0).toISOString(); // Último día del mes
+    localIncomes = localIncomes.filter(income => {
+      const incomeDate = new Date(income.date);
+      return incomeDate >= new Date(startDate) && incomeDate <= new Date(endDate);
+    });
+    
+    // Filtrar por tipo si se especifica
+    if (type) {
+      localIncomes = localIncomes.filter(income => income.type === type);
+    }
+    
+    // Filtrar por moneda si se especifica
+    if (currency && currency !== 'all') {
+      localIncomes = localIncomes.filter(income => income.currency === currency);
+    }
+    
+    if (localIncomes && localIncomes.length > 0) {
+      // Si existen ingresos almacenados localmente, úsalos
+      state.incomes = localIncomes;
+      console.log('Ingresos cargados desde almacenamiento local:', localIncomes.length);
+      
+      // Si estamos online, sincroniza con el servidor en segundo plano
+      if (state.isOnline) {
+        fetchIncomesFromServer(dbStorage, type, currency);
+      }
+    } else if (state.isOnline) {
+      // Si no hay datos locales y estamos online, obtén del servidor
+      await fetchIncomesFromServer(dbStorage, type, currency);
+    } else {
+      // Sin conexión y sin datos locales
+      state.incomes = [];
+      console.warn('Sin conexión y sin datos locales: no hay ingresos disponibles');
+    }
+  } catch (error) {
+    console.error('Error fetching incomes:', error);
+    state.incomes = [];
+  } finally {
+    state.loading = false;
+  }
+}
+
+// Función auxiliar para obtener ingresos desde el servidor
+async function fetchIncomesFromServer(dbStorage, type = null, currency = null) {
+  try {
     let url = `/api/incomes?month=${state.currentMonth}&year=${state.currentYear}`;
     if (type) {
       url += `&type=${encodeURIComponent(type)}`;
@@ -2241,21 +2386,27 @@ async function fetchIncomes(type = null, currency = null) {
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error('Error al cargar ingresos');
+      throw new Error('Error al cargar ingresos desde el servidor');
     }
     
-    let incomes = await response.json();
+    let incomesData = await response.json();
     
     // Filtrar por moneda si se especifica
     if (currency && currency !== 'all') {
-      incomes = incomes.filter(income => income.currency === currency);
+      incomesData = incomesData.filter(income => income.currency === currency);
     }
     
-    state.incomes = incomes;
+    state.incomes = incomesData;
+    
+    // Guardar en IndexedDB - actualizamos cada ingreso individualmente
+    for (const income of incomesData) {
+      await dbStorage.updateIncome(income);
+    }
+    
+    console.log('Ingresos actualizados desde el servidor:', incomesData.length);
   } catch (error) {
-    console.error('Error fetching incomes:', error);
-  } finally {
-    state.loading = false;
+    console.error('Error al obtener ingresos desde el servidor:', error);
+    throw error;
   }
 }
 
@@ -2264,70 +2415,245 @@ async function fetchSummary() {
   try {
     state.loading = true;
     
-    const response = await fetch(`/api/summary?month=${state.currentMonth}&year=${state.currentYear}`);
-    if (!response.ok) {
-      throw new Error('Error al cargar resumen');
+    // Verificar si estamos online y podemos acceder al servidor
+    if (state.isOnline) {
+      try {
+        await fetchSummaryFromServer();
+      } catch (error) {
+        console.error('Error al obtener resumen del servidor, generando localmente:', error);
+        await generateLocalSummary();
+      }
+    } else {
+      // Sin conexión, generar resumen con datos locales
+      console.log('Sin conexión: generando resumen con datos locales');
+      await generateLocalSummary();
     }
-    
-    const summaryData = await response.json();
-    
-    // Calcular el total real considerando ambas monedas para gastos
-    let totalExpensesCOP = 0;
-    let totalExpensesUSD = 0;
-    
-    // Calcular el total real considerando ambas monedas para ingresos
-    let totalIncomesCOP = 0;
-    let totalIncomesUSD = 0;
-    
-    // Obtenemos todos los gastos del mes
-    const expensesResponse = await fetch(`/api/expenses?month=${state.currentMonth}&year=${state.currentYear}`);
-    if (expensesResponse.ok) {
-      const expenses = await expensesResponse.json();
-      
-      // Calculamos los totales en cada moneda
-      expenses.forEach(expense => {
-        if (expense.currency === 'COP') {
-          totalExpensesCOP += expense.amount;
-        } else if (expense.currency === 'USD') {
-          totalExpensesUSD += expense.amount;
-          // También sumamos el equivalente en COP
-          totalExpensesCOP += expense.amount * state.exchangeRate.USD_TO_COP;
-        }
-      });
-    }
-    
-    // Obtenemos todos los ingresos del mes
-    const incomesResponse = await fetch(`/api/incomes?month=${state.currentMonth}&year=${state.currentYear}`);
-    if (incomesResponse.ok) {
-      const incomes = await incomesResponse.json();
-      
-      // Calculamos los totales en cada moneda para ingresos
-      incomes.forEach(income => {
-        if (income.currency === 'COP') {
-          totalIncomesCOP += income.amount;
-        } else if (income.currency === 'USD') {
-          totalIncomesUSD += income.amount;
-          // También sumamos el equivalente en COP
-          totalIncomesCOP += income.amount * state.exchangeRate.USD_TO_COP;
-        }
-      });
-    }
-    
-    // Actualizamos el resumen con los nuevos valores para gastos
-    summaryData.totalExpenses = totalExpensesCOP;
-    summaryData.totalExpensesUSD = totalExpensesUSD;
-    
-    // Actualizamos el resumen con los nuevos valores para ingresos
-    summaryData.totalIncomes = totalIncomesCOP;
-    summaryData.totalIncomesUSD = totalIncomesUSD;
-    summaryData.incomeCount = state.incomes.length;
-    
-    state.summary = summaryData;
   } catch (error) {
-    console.error('Error fetching summary:', error);
+    console.error('Error fetchSummary:', error);
+    
+    // En caso de error, intentar generar un resumen vacío
+    state.summary = {
+      totalExpenses: 0,
+      totalExpensesUSD: 0,
+      totalIncomes: 0,
+      totalIncomesUSD: 0,
+      expenseCount: 0,
+      incomeCount: 0,
+      expensesByCategory: {},
+      expensesByCategoryUSD: {},
+      expensesByDay: {},
+      expensesByDayUSD: {},
+      incomesByType: {},
+      incomesByTypeUSD: {},
+      incomesByDay: {},
+      incomesByDayUSD: {}
+    };
   } finally {
     state.loading = false;
   }
+}
+
+// Obtener resumen desde el servidor
+async function fetchSummaryFromServer() {
+  const response = await fetch(`/api/summary?month=${state.currentMonth}&year=${state.currentYear}`);
+  if (!response.ok) {
+    throw new Error('Error al cargar resumen desde el servidor');
+  }
+  
+  const summaryData = await response.json();
+  
+  // Calcular el total real considerando ambas monedas para gastos
+  let totalExpensesCOP = 0;
+  let totalExpensesUSD = 0;
+  
+  // Calcular el total real considerando ambas monedas para ingresos
+  let totalIncomesCOP = 0;
+  let totalIncomesUSD = 0;
+  
+  // Obtenemos todos los gastos del mes desde el estado (ya cargados)
+  state.expenses.forEach(expense => {
+    if (expense.currency === 'COP') {
+      totalExpensesCOP += expense.amount;
+    } else if (expense.currency === 'USD') {
+      totalExpensesUSD += expense.amount;
+      // También sumamos el equivalente en COP
+      totalExpensesCOP += expense.amount * state.exchangeRate.USD_TO_COP;
+    }
+  });
+  
+  // Obtenemos todos los ingresos del mes desde el estado (ya cargados)
+  state.incomes.forEach(income => {
+    if (income.currency === 'COP') {
+      totalIncomesCOP += income.amount;
+    } else if (income.currency === 'USD') {
+      totalIncomesUSD += income.amount;
+      // También sumamos el equivalente en COP
+      totalIncomesCOP += income.amount * state.exchangeRate.USD_TO_COP;
+    }
+  });
+  
+  // Actualizamos el resumen con los nuevos valores para gastos
+  summaryData.totalExpenses = totalExpensesCOP;
+  summaryData.totalExpensesUSD = totalExpensesUSD;
+  
+  // Actualizamos el resumen con los nuevos valores para ingresos
+  summaryData.totalIncomes = totalIncomesCOP;
+  summaryData.totalIncomesUSD = totalIncomesUSD;
+  summaryData.incomeCount = state.incomes.length;
+  
+  state.summary = summaryData;
+  
+  console.log('Resumen obtenido del servidor y actualizado con cálculos locales');
+}
+
+// Generar resumen utilizando datos locales
+async function generateLocalSummary() {
+  console.log('Generando resumen con datos locales');
+  
+  // Preparar estructura base del resumen
+  const summaryData = {
+    totalExpenses: 0,
+    totalExpensesUSD: 0,
+    totalIncomes: 0,
+    totalIncomesUSD: 0,
+    expenseCount: state.expenses.length,
+    incomeCount: state.incomes.length,
+    expensesByCategory: {},
+    expensesByCategoryUSD: {},
+    expensesByDay: {},
+    expensesByDayUSD: {},
+    incomesByType: {},
+    incomesByTypeUSD: {},
+    incomesByDay: {},
+    incomesByDayUSD: {}
+  };
+  
+  // Procesar gastos
+  state.expenses.forEach(expense => {
+    const date = new Date(expense.date);
+    const day = date.getDate();
+    const category = expense.category;
+    
+    if (expense.currency === 'COP') {
+      // Sumar al total en COP
+      summaryData.totalExpenses += expense.amount;
+      
+      // Actualizar categoría en COP
+      if (summaryData.expensesByCategory[category]) {
+        summaryData.expensesByCategory[category] += expense.amount;
+      } else {
+        summaryData.expensesByCategory[category] = expense.amount;
+      }
+      
+      // Actualizar día en COP
+      if (summaryData.expensesByDay[day]) {
+        summaryData.expensesByDay[day] += expense.amount;
+      } else {
+        summaryData.expensesByDay[day] = expense.amount;
+      }
+    } 
+    else if (expense.currency === 'USD') {
+      // Sumar al total en USD
+      summaryData.totalExpensesUSD += expense.amount;
+      
+      // Convertir para el total en COP
+      const amountInCOP = expense.amount * state.exchangeRate.USD_TO_COP;
+      summaryData.totalExpenses += amountInCOP;
+      
+      // Actualizar categoría en USD
+      if (summaryData.expensesByCategoryUSD[category]) {
+        summaryData.expensesByCategoryUSD[category] += expense.amount;
+      } else {
+        summaryData.expensesByCategoryUSD[category] = expense.amount;
+      }
+      
+      // Actualizar categoría en COP convertido
+      if (summaryData.expensesByCategory[category]) {
+        summaryData.expensesByCategory[category] += amountInCOP;
+      } else {
+        summaryData.expensesByCategory[category] = amountInCOP;
+      }
+      
+      // Actualizar día en USD
+      if (summaryData.expensesByDayUSD[day]) {
+        summaryData.expensesByDayUSD[day] += expense.amount;
+      } else {
+        summaryData.expensesByDayUSD[day] = expense.amount;
+      }
+      
+      // Actualizar día en COP convertido
+      if (summaryData.expensesByDay[day]) {
+        summaryData.expensesByDay[day] += amountInCOP;
+      } else {
+        summaryData.expensesByDay[day] = amountInCOP;
+      }
+    }
+  });
+  
+  // Procesar ingresos
+  state.incomes.forEach(income => {
+    const date = new Date(income.date);
+    const day = date.getDate();
+    const type = income.type;
+    
+    if (income.currency === 'COP') {
+      // Sumar al total en COP
+      summaryData.totalIncomes += income.amount;
+      
+      // Actualizar tipo en COP
+      if (summaryData.incomesByType[type]) {
+        summaryData.incomesByType[type] += income.amount;
+      } else {
+        summaryData.incomesByType[type] = income.amount;
+      }
+      
+      // Actualizar día en COP
+      if (summaryData.incomesByDay[day]) {
+        summaryData.incomesByDay[day] += income.amount;
+      } else {
+        summaryData.incomesByDay[day] = income.amount;
+      }
+    } 
+    else if (income.currency === 'USD') {
+      // Sumar al total en USD
+      summaryData.totalIncomesUSD += income.amount;
+      
+      // Convertir para el total en COP
+      const amountInCOP = income.amount * state.exchangeRate.USD_TO_COP;
+      summaryData.totalIncomes += amountInCOP;
+      
+      // Actualizar tipo en USD
+      if (summaryData.incomesByTypeUSD[type]) {
+        summaryData.incomesByTypeUSD[type] += income.amount;
+      } else {
+        summaryData.incomesByTypeUSD[type] = income.amount;
+      }
+      
+      // Actualizar tipo en COP convertido
+      if (summaryData.incomesByType[type]) {
+        summaryData.incomesByType[type] += amountInCOP;
+      } else {
+        summaryData.incomesByType[type] = amountInCOP;
+      }
+      
+      // Actualizar día en USD
+      if (summaryData.incomesByDayUSD[day]) {
+        summaryData.incomesByDayUSD[day] += income.amount;
+      } else {
+        summaryData.incomesByDayUSD[day] = income.amount;
+      }
+      
+      // Actualizar día en COP convertido
+      if (summaryData.incomesByDay[day]) {
+        summaryData.incomesByDay[day] += amountInCOP;
+      } else {
+        summaryData.incomesByDay[day] = amountInCOP;
+      }
+    }
+  });
+  
+  state.summary = summaryData;
+  console.log('Resumen generado localmente completado');
 }
 
 // Agregar cuenta
