@@ -65,6 +65,7 @@ async function initApp() {
   await fetchExchangeRate();
   await fetchAccounts();
   await fetchExpenses();
+  await fetchIncomes();
   await fetchSummary();
   
   updateUI();
@@ -1330,6 +1331,36 @@ async function fetchExpenses(category = null, currency = null) {
   }
 }
 
+// Obtener ingresos
+async function fetchIncomes(type = null, currency = null) {
+  try {
+    state.loading = true;
+    
+    let url = `/api/incomes?month=${state.currentMonth}&year=${state.currentYear}`;
+    if (type) {
+      url += `&type=${encodeURIComponent(type)}`;
+    }
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Error al cargar ingresos');
+    }
+    
+    let incomes = await response.json();
+    
+    // Filtrar por moneda si se especifica
+    if (currency && currency !== 'all') {
+      incomes = incomes.filter(income => income.currency === currency);
+    }
+    
+    state.incomes = incomes;
+  } catch (error) {
+    console.error('Error fetching incomes:', error);
+  } finally {
+    state.loading = false;
+  }
+}
+
 // Obtener resumen mensual
 async function fetchSummary() {
   try {
@@ -1470,6 +1501,56 @@ async function deleteExpense(id) {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Error al eliminar gasto');
+  }
+  
+  return true;
+}
+
+// Agregar ingreso
+async function addIncome(incomeData) {
+  const response = await fetch('/api/incomes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(incomeData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al crear ingreso');
+  }
+  
+  return response.json();
+}
+
+// Actualizar ingreso
+async function updateIncome(id, incomeData) {
+  const response = await fetch(`/api/incomes/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(incomeData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al actualizar ingreso');
+  }
+  
+  return response.json();
+}
+
+// Eliminar ingreso
+async function deleteIncome(id) {
+  const response = await fetch(`/api/incomes/${id}`, {
+    method: 'DELETE'
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al eliminar ingreso');
   }
   
   return true;
