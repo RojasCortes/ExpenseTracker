@@ -365,11 +365,15 @@
       position: fixed;
       bottom: 80px;
       right: 20px;
+      left: auto;
       z-index: 1000;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       border: none;
       cursor: pointer;
       transition: transform 0.2s;
+      /* Asegurar que el botón está siempre visible */
+      margin-bottom: 10px;
+      transform: translateZ(0);
     }
     
     .fab:active {

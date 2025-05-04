@@ -343,58 +343,89 @@ const getMonthlySummary = (month, year) => {
   // Filtrar gastos del mes
   const monthlyExpenses = getExpenses({ month, year });
   
-  // Calcular gastos totales
-  const totalExpenses = monthlyExpenses.reduce((total, expense) => {
-    // Convertir todos a la moneda predeterminada (COP) para sumar
-    let amount = expense.amount;
-    if (expense.currency !== 'COP') {
-      amount = convertCurrency(amount, expense.currency, 'COP');
-    }
-    return total + amount;
-  }, 0);
+  // Calcular gastos totales en COP y USD
+  let totalExpenses = 0;
+  let totalExpensesUSD = 0;
   
-  // Agrupar gastos por categoría
-  const expensesByCategory = monthlyExpenses.reduce((result, expense) => {
+  // Agrupar gastos por categoría (COP y USD por separado)
+  const expensesByCategory = {};
+  const expensesByCategoryUSD = {};
+  
+  // Agrupar gastos por día (COP y USD por separado)
+  const expensesByDay = {};
+  const expensesByDayUSD = {};
+  
+  // Procesar todos los gastos
+  monthlyExpenses.forEach(expense => {
+    const amount = expense.amount;
     const category = expense.category;
-    let amount = expense.amount;
-    
-    if (expense.currency !== 'COP') {
-      amount = convertCurrency(amount, expense.currency, 'COP');
-    }
-    
-    if (result[category]) {
-      result[category] += amount;
-    } else {
-      result[category] = amount;
-    }
-    
-    return result;
-  }, {});
-  
-  // Agrupar gastos por día
-  const expensesByDay = monthlyExpenses.reduce((result, expense) => {
     const date = new Date(expense.date);
     const day = date.getDate();
     
-    let amount = expense.amount;
-    if (expense.currency !== 'COP') {
-      amount = convertCurrency(amount, expense.currency, 'COP');
+    if (expense.currency === 'COP') {
+      // Sumar al total en COP
+      totalExpenses += amount;
+      
+      // Actualizar categoría en COP
+      if (expensesByCategory[category]) {
+        expensesByCategory[category] += amount;
+      } else {
+        expensesByCategory[category] = amount;
+      }
+      
+      // Actualizar día en COP
+      if (expensesByDay[day]) {
+        expensesByDay[day] += amount;
+      } else {
+        expensesByDay[day] = amount;
+      }
+    } 
+    else if (expense.currency === 'USD') {
+      // Sumar al total en USD
+      totalExpensesUSD += amount;
+      
+      // Convertir para el total en COP
+      const amountInCOP = convertCurrency(amount, 'USD', 'COP');
+      totalExpenses += amountInCOP;
+      
+      // Actualizar categoría en USD
+      if (expensesByCategoryUSD[category]) {
+        expensesByCategoryUSD[category] += amount;
+      } else {
+        expensesByCategoryUSD[category] = amount;
+      }
+      
+      // Actualizar categoría en COP convertido
+      if (expensesByCategory[category]) {
+        expensesByCategory[category] += amountInCOP;
+      } else {
+        expensesByCategory[category] = amountInCOP;
+      }
+      
+      // Actualizar día en USD
+      if (expensesByDayUSD[day]) {
+        expensesByDayUSD[day] += amount;
+      } else {
+        expensesByDayUSD[day] = amount;
+      }
+      
+      // Actualizar día en COP convertido
+      if (expensesByDay[day]) {
+        expensesByDay[day] += amountInCOP;
+      } else {
+        expensesByDay[day] = amountInCOP;
+      }
     }
-    
-    if (result[day]) {
-      result[day] += amount;
-    } else {
-      result[day] = amount;
-    }
-    
-    return result;
-  }, {});
+  });
   
   return {
     totalExpenses,
+    totalExpensesUSD,
     expenseCount: monthlyExpenses.length,
     expensesByCategory,
-    expensesByDay
+    expensesByCategoryUSD,
+    expensesByDay,
+    expensesByDayUSD
   };
 };
 

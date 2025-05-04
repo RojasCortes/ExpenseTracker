@@ -420,29 +420,14 @@ function renderAccountsView() {
   };
   
   // Obtener total de balances para todas las cuentas
-  let totalBalance = 0;
   let totalBalanceCOP = 0;
   let totalBalanceUSD = 0;
   
   state.accounts.forEach(account => {
     if (account.currency === 'COP') {
       totalBalanceCOP += account.balance;
-      // Usar tasa actualizada para conversión COP a USD
-      totalBalanceUSD += account.balance * state.exchangeRate.COP_TO_USD;
-    } else {
-      // Usar tasa actualizada para conversión USD a COP
-      totalBalanceCOP += account.balance * state.exchangeRate.USD_TO_COP;
+    } else if (account.currency === 'USD') {
       totalBalanceUSD += account.balance;
-    }
-    
-    // Sumar al total según la moneda seleccionada
-    if (state.selectedCurrency === account.currency) {
-      totalBalance += account.balance;
-    } else {
-      // Usar tasas actualizadas para conversiones
-      totalBalance += state.selectedCurrency === 'USD' ? 
-        account.balance * state.exchangeRate.COP_TO_USD : // COP a USD
-        account.balance * state.exchangeRate.USD_TO_COP;  // USD a COP
     }
   });
   
@@ -451,8 +436,8 @@ function renderAccountsView() {
       <div class="balance-title">Balance Total</div>
       <div class="balance-amount">
         ${state.selectedCurrency === 'USD' ? 
-          `$${totalBalanceUSD.toFixed(2)}` : 
-          `$${Math.round(totalBalanceCOP).toLocaleString('es-CO')}`}
+          formatMoney(totalBalanceUSD, 'USD') : 
+          formatMoney(totalBalanceCOP, 'COP')}
       </div>
       
       <div class="currency-selector">
@@ -1141,13 +1126,13 @@ function renderCategoriesPieChart() {
   const categories = Object.keys(expensesByCategory);
   const amounts = Object.values(expensesByCategory);
   
-  // Convertir montos a la moneda seleccionada usando tasa de cambio actualizada
-  const convertedAmounts = amounts.map(amount => {
-    if (state.selectedCurrency === 'USD') {
-      return amount * state.exchangeRate.COP_TO_USD; // COP a USD usando tasa actualizada
-    }
-    return amount;
-  });
+  // Usar los datos en la moneda correcta
+  const expensesByCategoryUSD = state.summary.expensesByCategoryUSD || {};
+  
+  // Obtener los valores según la moneda seleccionada
+  const convertedAmounts = state.selectedCurrency === 'USD' 
+    ? categories.map(category => expensesByCategoryUSD[category] || 0)
+    : amounts;
   
   const backgroundColors = categories.map(category => getCategoryColor(category));
   
@@ -1206,12 +1191,16 @@ function renderDailyExpensesChart() {
   const daysInMonth = new Date(state.currentYear, state.currentMonth, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   
-  // Preparar datos para gráfico
+  // Obtener gastos diarios en USD si existen
+  const expensesByDayUSD = state.summary.expensesByDayUSD || {};
+  
+  // Preparar datos para gráfico según la moneda seleccionada
   const expensesData = days.map(day => {
-    const dayExpenses = expensesByDay[day] || 0;
-    return state.selectedCurrency === 'USD' ? 
-      dayExpenses * state.exchangeRate.COP_TO_USD : // Usar tasa actualizada
-      dayExpenses;
+    if (state.selectedCurrency === 'USD') {
+      return expensesByDayUSD[day] || 0;
+    } else {
+      return expensesByDay[day] || 0;
+    }
   });
   
   // Crear gráfico
