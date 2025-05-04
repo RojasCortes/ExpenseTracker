@@ -246,7 +246,12 @@ function renderDashboardView() {
   viewContainer.innerHTML = `
     <div class="card balance-card">
       <div class="balance-title">Balance Total</div>
-      <div class="balance-amount">${formatAmount(totalBalance)}</div>
+      <div class="balance-amount">
+        ${state.selectedCurrency === 'USD' ? 
+          `$${totalBalance.toFixed(2)} USD` : 
+          `$${Math.round(totalBalance).toLocaleString('es-CO')} COP`
+        }
+      </div>
       
       <div class="currency-selector">
         <div class="currency-option ${state.selectedCurrency === 'COP' ? 'active' : ''}" data-currency="COP">COP</div>
@@ -323,6 +328,12 @@ function renderExpensesView() {
           ${generateYearOptions()}
         </select>
         
+        <select id="currency-filter" class="form-control">
+          <option value="all">Todas las monedas</option>
+          <option value="COP">Solo COP</option>
+          <option value="USD">Solo USD</option>
+        </select>
+        
         <button id="apply-filter" class="btn btn-primary">Aplicar</button>
       </div>
       
@@ -350,11 +361,12 @@ function renderExpensesView() {
   document.getElementById('apply-filter').addEventListener('click', () => {
     const month = document.getElementById('month-filter').value;
     const year = document.getElementById('year-filter').value;
+    const currency = document.getElementById('currency-filter').value;
     
     state.currentMonth = parseInt(month);
     state.currentYear = parseInt(year);
     
-    fetchExpenses().then(() => {
+    fetchExpenses(null, currency).then(() => {
       document.getElementById('expenses-list').innerHTML = 
         state.expenses.length === 0 ? 
         '<div class="text-center my-4">No hay gastos para el período seleccionado</div>' : 
@@ -377,11 +389,13 @@ function renderExpensesView() {
       });
       button.classList.add('btn-primary');
       
+      const currency = document.getElementById('currency-filter').value;
+      
       if (filter === 'all') {
-        await fetchExpenses();
+        await fetchExpenses(null, currency);
       } else if (filter.startsWith('category-')) {
         const category = filter.replace('category-', '');
-        await fetchExpenses(category);
+        await fetchExpenses(category, currency);
       }
       
       document.getElementById('expenses-list').innerHTML = 
@@ -578,7 +592,11 @@ function renderReportsView() {
         <div>
           <div style="font-size: 14px; color: #777;">Total Gastos</div>
           <div style="font-size: 24px; font-weight: bold; color: var(--danger-color);">
-            ${formatMoney(state.summary?.totalExpenses || 0, state.selectedCurrency)}
+            ${
+              state.selectedCurrency === 'USD'
+              ? formatMoney((state.summary?.totalExpenses || 0) * state.exchangeRate.COP_TO_USD, 'USD')
+              : formatMoney(state.summary?.totalExpenses || 0, 'COP')
+            }
           </div>
         </div>
         
@@ -1284,7 +1302,7 @@ async function fetchAccounts() {
 }
 
 // Obtener gastos
-async function fetchExpenses(category = null) {
+async function fetchExpenses(category = null, currency = null) {
   try {
     state.loading = true;
     
@@ -1298,7 +1316,14 @@ async function fetchExpenses(category = null) {
       throw new Error('Error al cargar gastos');
     }
     
-    state.expenses = await response.json();
+    let expenses = await response.json();
+    
+    // Filtrar por moneda si se especifica
+    if (currency && currency !== 'all') {
+      expenses = expenses.filter(expense => expense.currency === currency);
+    }
+    
+    state.expenses = expenses;
   } catch (error) {
     console.error('Error fetching expenses:', error);
   } finally {
