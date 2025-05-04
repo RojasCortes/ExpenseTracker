@@ -57,10 +57,11 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       transition: background-color 0.3s, color 0.3s;
-      padding-bottom: calc(var(--bottom-nav-height) + 10px);
+      padding-bottom: calc(var(--bottom-nav-height) + 20px); /* Aumentado para mayor espacio */
       min-height: 100vh;
       position: relative;
       margin: 0;
+      overscroll-behavior-y: none; /* Evita el rebote en iOS/Safari */
     }
     
     .app-container {
@@ -115,10 +116,11 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 1rem;
-      z-index: 10;
+      z-index: 100;
       max-width: 600px;
       margin: 0 auto;
       width: 100%;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
     }
     
     .nav-item {
@@ -819,6 +821,7 @@
   <div id="app"></div>
   
   <!-- Cargar JavaScript -->
+  <script src="js/indexedDB.js"></script>
   <script src="js/app.js"></script>
   
   <!-- Service Worker para PWA -->
