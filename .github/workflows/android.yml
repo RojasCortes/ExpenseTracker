@@ -12,10 +12,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build with Docker
+      - name: Setup environment
         run: |
-          docker run --rm -v $(pwd):/project -w /project node:20 bash -c "npm install && mkdir -p dist && echo '<html><body>App</body></html>' > dist/index.html && npx cap sync android"
-          docker run --rm -v $(pwd):/project -w /project/android openjdk:17 bash -c "chmod +x ./gradlew && ./gradlew assembleDebug"
+          # Crear directorio dist mínimo
+          mkdir -p dist
+          echo "<html><body>Placeholder</body></html>" > dist/index.html
+
+      - name: Sync with Capacitor
+        run: |
+          # Usar una imagen de Node.js para la parte web/Capacitor
+          docker run --rm -v $(pwd):/project -w /project node:20-bullseye bash -c "npm install && npx cap sync android"
+
+      - name: Build with Android Docker
+        run: |
+          # Usar una imagen específica para Android que tiene todas las herramientas necesarias
+          docker run --rm -v $(pwd):/project -w /project/android cimg/android:2023.08.1-node bash -c "apt-get update && apt-get install -y findutils xargs && chmod +x ./gradlew && ./gradlew assembleDebug"
 
       - name: List APK files
         run: find android -name "*.apk"
