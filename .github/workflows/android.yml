@@ -18,10 +18,38 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g @capacitor/cli
+
+      - name: List project structure
+        run: ls -la
+
+      - name: Initialize Android platform
+        run: |
+          npx cap add android || true
+          ls -la android/
+
+      - name: Check Capacitor configuration
+        run: |
+          cat capacitor.config.ts || cat capacitor.config.json || echo "No Capacitor config found"
+
+      - name: Sync Capacitor
+        run: |
+          npm run build || true
+          npx cap sync android
+
       - name: Build with Gradle
         run: |
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug --info
-          echo "APK should be at:"
-          find . -name "*.apk"
+
+      - name: Check for APK
+        run: find android -name "*.apk"
