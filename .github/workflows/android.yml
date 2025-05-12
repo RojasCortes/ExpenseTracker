@@ -1,4 +1,4 @@
-name: Basic Android Build
+name: Android Build with Docker
 
 on:
   push:
@@ -12,45 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v2
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '20'
-
-      - name: List project structure
-        run: ls -la
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Update build.gradle
+      - name: Build with Docker
         run: |
-          if [ -f android/app/build.gradle ]; then
-            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
-            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
-          fi
+          docker run --rm -v $(pwd):/project -w /project node:20 bash -c "npm install && mkdir -p dist && echo '<html><body>App</body></html>' > dist/index.html && npx cap sync android"
+          docker run --rm -v $(pwd):/project -w /project/android openjdk:17 bash -c "chmod +x ./gradlew && ./gradlew assembleDebug"
 
-      - name: Create dist folder
-        run: |
-          mkdir -p dist
-          echo "<html><body>Placeholder</body></html>" > dist/index.html
-
-      - name: Sync with Capacitor
-        run: npx cap sync android
-
-      - name: Build with Gradle
-        run: |
-          cd android
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
-
-      - name: Check for APK
-        run: |
-          find android -name "*.apk"
-          ls -la android/app/build/outputs/apk/debug/ || echo "No APK directory found"
+      - name: List APK files
+        run: find android -name "*.apk"
