@@ -47,10 +47,22 @@ jobs:
       - name: Find APK
         run: find android -name "*.apk"
 
-      # Esta acción simplemente crea una copia del APK con el nombre versionado sin usar upload-artifact
       - name: Create versioned APK
         run: |
           mkdir -p versioned-apk
           cp $(find android -name "app-debug.apk") versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk
+          echo "APK_PATH=versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk" >> $GITHUB_ENV
           echo "APK con versión creado en: versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk"
           ls -la versioned-apk/
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: build-${{ steps.version.outputs.version }}
+          name: Build ${{ steps.version.outputs.version }}
+          files: ${{ env.APK_PATH }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
