@@ -56,13 +56,12 @@ jobs:
           ls -la versioned-apk/
 
       - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: build-${{ steps.version.outputs.version }}
+          artifacts: "${{ env.APK_PATH }}"
+          tag: build-${{ steps.version.outputs.version }}
           name: Build ${{ steps.version.outputs.version }}
-          files: ${{ env.APK_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
           draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          makeLatest: true
