@@ -1,18 +1,13 @@
 name: Android Build with Java 21
-
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Necesario para obtener todos los tags y commits para versionado
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -25,11 +20,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Generate build version
+      - name: Generate version
         id: version
-        run: |
-          echo "version=$(date +'%Y%m%d_%H%M')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "Build version: $(date +'%Y%m%d_%H%M')-$(git rev-parse --short HEAD)"
+        run: echo "version=$(date +'%Y%m%d_%H%M')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: npm install
@@ -45,42 +38,19 @@ jobs:
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Update version in build.gradle
-        run: |
-          if [ -f android/app/build.gradle ]; then
-            # Buscar y reemplazar versionName o añadirlo si no existe
-            if grep -q "versionName" android/app/build.gradle; then
-              sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.version }}\"/g" android/app/build.gradle
-            else
-              sed -i "/defaultConfig {/a\\        versionName \"${{ steps.version.outputs.version }}\"" android/app/build.gradle
-            fi
-          
-            echo "Updated version in build.gradle to ${{ steps.version.outputs.version }}"
-            grep -A 10 "defaultConfig {" android/app/build.gradle
-          fi
-
       - name: Build debug APK
         run: |
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Check APK file exists
+      - name: Find APK
         run: find android -name "*.apk"
 
-      - name: Upload APK with version
-        uses: actions/upload-artifact@v2
-        with:
-          name: ExpenseTracker-${{ steps.version.outputs.version }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Rename APK file with version
+      # Esta acción simplemente crea una copia del APK con el nombre versionado sin usar upload-artifact
+      - name: Create versioned APK
         run: |
           mkdir -p versioned-apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk
-
-      - name: Upload versioned APK
-        uses: actions/upload-artifact@v2
-        with:
-          name: versioned-apk
-          path: versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk
+          cp $(find android -name "app-debug.apk") versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk
+          echo "APK con versión creado en: versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk"
+          ls -la versioned-apk/
