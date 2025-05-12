@@ -24,8 +24,17 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v1
+      - name: List APK files
+        run: find android -name "*.apk"
+
+      - name: Create output directory
+        run: mkdir -p output
+
+      - name: Copy APK to output directory
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk output/
+
+      # Esta opción usa el almacenamiento de GitHub artifacts pero no usa la acción upload-artifact
+      - name: Archive production artifacts
+        uses: actions/upload-pages-artifact@v1
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: output
