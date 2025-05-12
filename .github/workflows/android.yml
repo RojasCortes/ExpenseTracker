@@ -66,3 +66,7 @@ jobs:
           echo "Tamaño: $(ls -lh ${{ env.VERSIONED_APK_PATH }} | awk '{print $5}')"
           echo "MD5: $(md5sum ${{ env.VERSIONED_APK_PATH }} | awk '{print $1}')"
           echo "=============================================="
+
+      - name: Upload to transfer.sh
+        run: |
+          curl --upload-file versioned-apk/ExpenseTracker-${{ steps.version.outputs.version }}.apk https://transfer.sh/ExpenseTracker-${{ steps.version.outputs.version }}.apk
