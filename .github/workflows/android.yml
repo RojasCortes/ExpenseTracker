@@ -1,4 +1,4 @@
-name: Android Build with Docker
+name: Android Build Step by Step
 
 on:
   push:
@@ -12,21 +12,51 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup environment
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create dist folder
         run: |
-          # Crear directorio dist mínimo
           mkdir -p dist
           echo "<html><body>Placeholder</body></html>" > dist/index.html
 
       - name: Sync with Capacitor
-        run: |
-          # Usar una imagen de Node.js para la parte web/Capacitor
-          docker run --rm -v $(pwd):/project -w /project node:20-bullseye bash -c "npm install && npx cap sync android"
+        run: npx cap sync android
 
-      - name: Build with Android Docker
+      - name: Check gradlew permissions
         run: |
-          # Usar una imagen específica para Android que tiene todas las herramientas necesarias
-          docker run --rm -v $(pwd):/project -w /project/android cimg/android:2023.08.1-node bash -c "apt-get update && apt-get install -y findutils xargs && chmod +x ./gradlew && ./gradlew assembleDebug"
+          ls -la android/gradlew
+          chmod +x android/gradlew
 
-      - name: List APK files
-        run: find android -name "*.apk"
+      - name: Fix Java version in build.gradle
+        run: |
+          if [ -f android/app/build.gradle ]; then
+            # Verificar si contiene referencias a Java 21
+            grep -q "VERSION_21" android/app/build.gradle && (
+              sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/app/build.gradle
+              echo "Fixed Java version references"
+            ) || echo "No references to VERSION_21 found"
+          fi
+
+      - name: Build debug APK
+        run: |
+          cd android
+          ./gradlew --version
+          ./gradlew tasks
+          ./gradlew assembleDebug --info
+
+      - name: Check build outputs
+        run: |
+          find android -name "*.apk" || echo "No APK found"
+          ls -la android/app/build/outputs/ || echo "No outputs directory"
