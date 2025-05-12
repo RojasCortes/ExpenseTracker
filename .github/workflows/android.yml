@@ -1,4 +1,4 @@
-name: Android Build
+name: Basic Android Build
 
 on:
   push:
@@ -29,37 +29,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Update android/app/build.gradle for Java version issue
+      - name: Update build.gradle
         run: |
           if [ -f android/app/build.gradle ]; then
-            # Cambia la versión de Java a 17 (en lugar de 21)
             sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
             sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
-            sed -i 's/compileOptions {/compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
-            cat android/app/build.gradle
           fi
 
-      - name: Skip build and sync with Capacitor
+      - name: Create dist folder
         run: |
-          # Crea un directorio dist mínimo ya que no hay script de build
           mkdir -p dist
           echo "<html><body>Placeholder</body></html>" > dist/index.html
-          npx cap sync android
+
+      - name: Sync with Capacitor
+        run: npx cap sync android
 
       - name: Build with Gradle
         run: |
           cd android
           chmod +x ./gradlew
-          # Añade opciones para usar Java 17
-          ./gradlew assembleDebug -Dorg.gradle.java.home=/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.*/x64
+          ./gradlew assembleDebug
 
       - name: Check for APK
-        run: find android -name "*.apk"
-
-      - name: Upload APK if exists
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: ignore
+        run: |
+          find android -name "*.apk"
+          ls -la android/app/build/outputs/apk/debug/ || echo "No APK directory found"
