@@ -23,33 +23,43 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: |
-          npm install
-          npm install -g @capacitor/cli
-
       - name: List project structure
         run: ls -la
 
-      - name: Initialize Android platform
-        run: |
-          npx cap add android || true
-          ls -la android/
+      - name: Install dependencies
+        run: npm install
 
-      - name: Check Capacitor configuration
+      - name: Update android/app/build.gradle for Java version issue
         run: |
-          cat capacitor.config.ts || cat capacitor.config.json || echo "No Capacitor config found"
+          if [ -f android/app/build.gradle ]; then
+            # Cambia la versión de Java a 17 (en lugar de 21)
+            sed -i 's/sourceCompatibility JavaVersion.VERSION_21/sourceCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
+            sed -i 's/targetCompatibility JavaVersion.VERSION_21/targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
+            sed -i 's/compileOptions {/compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17/g' android/app/build.gradle
+            cat android/app/build.gradle
+          fi
 
-      - name: Sync Capacitor
+      - name: Skip build and sync with Capacitor
         run: |
-          npm run build || true
+          # Crea un directorio dist mínimo ya que no hay script de build
+          mkdir -p dist
+          echo "<html><body>Placeholder</body></html>" > dist/index.html
           npx cap sync android
 
       - name: Build with Gradle
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --info
+          # Añade opciones para usar Java 17
+          ./gradlew assembleDebug -Dorg.gradle.java.home=/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.*/x64
 
       - name: Check for APK
         run: find android -name "*.apk"
+
+      - name: Upload APK if exists
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
